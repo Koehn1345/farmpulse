@@ -100,7 +100,7 @@ export default function Expenses() {
                 <tr key={row.id} className="table-row">
                   <td className="px-5 py-3 font-mono text-xs text-slate-400">{row.date}</td>
                   <td className="px-5 py-3 text-slate-200 font-medium">{row.vendor}</td>
-                  <td className="px-5 py-3 text-slate-400">{lookup(fields, row.fieldId, 'fieldName')}</td>
+                  <td className="px-5 py-3 text-slate-400">{lookup(fields, row.fieldId, 'field_name')}</td>
                   <td className="px-5 py-3 text-slate-400 text-xs max-w-xs truncate">{row.notes || '—'}</td>
                   <td className="px-5 py-3 text-right font-semibold text-red-400">{fmt(row.amount)}</td>
                   <td className="px-5 py-3">
@@ -143,7 +143,7 @@ export default function Expenses() {
               <label className="label">Field</label>
               <select className="input" name="fieldId" value={form.fieldId} onChange={handleChange}>
                 <option value="">Select…</option>
-                {fields.map(f => <option key={f.id} value={f.id}>{f.fieldName}</option>)}
+                {fields.map(f => <option key={f.id} value={f.id}>{f.field_name}</option>)}
               </select>
             </div>
             <div>

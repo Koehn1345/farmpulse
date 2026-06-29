@@ -4,12 +4,12 @@ import Modal from '../components/Modal.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import { Plus, Pencil, Trash2, Building2, Phone, Mail, MapPin } from 'lucide-react';
 
-const empty = { companyName: '', contactName: '', phone: '', email: '', mailingAddress: '' };
+const empty = { company_name: '', contact_name: '', phone: '', email: '', mailing_address: '' };
 
 export default function Customers() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null); // null | 'add' | {edit: row}
+  const [modal, setModal] = useState(null);
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
 
@@ -17,25 +17,18 @@ export default function Customers() {
   useEffect(() => { load(); }, []);
 
   const openAdd = () => { setForm(empty); setModal('add'); };
-  const openEdit = (row) => { setForm({ ...row }); setModal({ edit: row }); };
+  const openEdit = (row) => { setForm({ company_name: row.company_name, contact_name: row.contact_name || '', phone: row.phone || '', email: row.email || '', mailing_address: row.mailing_address || '' }); setModal({ edit: row }); };
   const closeModal = () => setModal(null);
-
   const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
   const handleSave = async () => {
-    if (!form.companyName) return;
+    if (!form.company_name) return;
     setSaving(true);
     try {
-      if (modal === 'add') {
-        await api.customers.create(form);
-      } else {
-        await api.customers.update(modal.edit.id, form);
-      }
-      await load();
-      closeModal();
-    } finally {
-      setSaving(false);
-    }
+      if (modal === 'add') await api.customers.create(form);
+      else await api.customers.update(modal.edit.id, form);
+      await load(); closeModal();
+    } finally { setSaving(false); }
   };
 
   const handleDelete = async (id) => {
@@ -66,9 +59,9 @@ export default function Customers() {
                 <div>
                   <div className="font-semibold text-slate-100 flex items-center gap-2">
                     <Building2 size={14} className="text-soil-400" />
-                    {row.companyName}
+                    {row.company_name}
                   </div>
-                  <div className="text-sm text-slate-400 mt-0.5">{row.contactName}</div>
+                  <div className="text-sm text-slate-400 mt-0.5">{row.contact_name}</div>
                 </div>
                 <div className="flex gap-1">
                   <button className="btn-secondary !px-2 !py-1" onClick={() => openEdit(row)}><Pencil size={13} /></button>
@@ -78,14 +71,12 @@ export default function Customers() {
               <div className="space-y-1.5 text-xs text-slate-400">
                 {row.phone && <div className="flex items-center gap-2"><Phone size={12} />{row.phone}</div>}
                 {row.email && <div className="flex items-center gap-2"><Mail size={12} />{row.email}</div>}
-                {row.mailingAddress && <div className="flex items-center gap-2"><MapPin size={12} />{row.mailingAddress}</div>}
+                {row.mailing_address && <div className="flex items-center gap-2"><MapPin size={12} />{row.mailing_address}</div>}
               </div>
             </div>
           ))}
           {rows.length === 0 && (
-            <div className="col-span-3 text-center py-12 text-slate-500">
-              No customers yet. Add your first one.
-            </div>
+            <div className="col-span-3 text-center py-12 text-slate-500">No customers yet. Add your first one.</div>
           )}
         </div>
       )}
@@ -95,11 +86,11 @@ export default function Customers() {
           <div className="space-y-4">
             <div>
               <label className="label">Company Name *</label>
-              <input className="input" name="companyName" value={form.companyName} onChange={handleChange} placeholder="Valley Grain Co." />
+              <input className="input" name="company_name" value={form.company_name} onChange={handleChange} placeholder="Valley Grain Co." />
             </div>
             <div>
               <label className="label">Contact Name</label>
-              <input className="input" name="contactName" value={form.contactName} onChange={handleChange} placeholder="John Smith" />
+              <input className="input" name="contact_name" value={form.contact_name} onChange={handleChange} placeholder="John Smith" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -113,7 +104,7 @@ export default function Customers() {
             </div>
             <div>
               <label className="label">Mailing Address</label>
-              <input className="input" name="mailingAddress" value={form.mailingAddress} onChange={handleChange} placeholder="123 Farm Rd, Ritzville, WA" />
+              <input className="input" name="mailing_address" value={form.mailing_address} onChange={handleChange} placeholder="123 Farm Rd, Ritzville, WA" />
             </div>
             <div className="flex gap-3 pt-2">
               <button className="btn-primary flex-1 justify-center" onClick={handleSave} disabled={saving}>
