@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 import Modal from '../components/Modal.jsx';
 import PageHeader from '../components/PageHeader.jsx';
+import { useFarm } from '../context/FarmContext.jsx';
 import { Plus, Pencil, Trash2, Filter } from 'lucide-react';
 
 const emptyLoad = {
@@ -10,7 +11,104 @@ const emptyLoad = {
   driver: '', truckNumber: '',
 };
 
+// Inline quick-add sub-forms
+function QuickAddCustomer({ onSave, onCancel }) {
+  const [name, setName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const handleSave = async () => {
+    if (!name) return;
+    setSaving(true);
+    try {
+      const c = await api.customers.create({ company_name: name });
+      onSave(c);
+    } finally { setSaving(false); }
+  };
+  return (
+    <div className="mt-2 p-3 bg-slate-800 rounded-lg border border-slate-700 space-y-2">
+      <div className="text-xs text-slate-400 font-medium">New Customer</div>
+      <input className="input" placeholder="Company name" value={name} onChange={e => setName(e.target.value)} autoFocus />
+      <div className="flex gap-2">
+        <button className="btn-primary !py-1 text-xs" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Add'}</button>
+        <button className="btn-secondary !py-1 text-xs" onClick={onCancel}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+function QuickAddField({ onSave, onCancel }) {
+  const [form, setForm] = useState({ field_name: '', acres: '' });
+  const [saving, setSaving] = useState(false);
+  const handleSave = async () => {
+    if (!form.field_name) return;
+    setSaving(true);
+    try {
+      const f = await api.fields.create({ field_name: form.field_name, acres: parseFloat(form.acres) || null });
+      onSave(f);
+    } finally { setSaving(false); }
+  };
+  return (
+    <div className="mt-2 p-3 bg-slate-800 rounded-lg border border-slate-700 space-y-2">
+      <div className="text-xs text-slate-400 font-medium">New Field</div>
+      <input className="input" placeholder="Field name" value={form.field_name} onChange={e => setForm(f => ({ ...f, field_name: e.target.value }))} autoFocus />
+      <input className="input" placeholder="Acres (optional)" type="number" value={form.acres} onChange={e => setForm(f => ({ ...f, acres: e.target.value }))} />
+      <div className="flex gap-2">
+        <button className="btn-primary !py-1 text-xs" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Add'}</button>
+        <button className="btn-secondary !py-1 text-xs" onClick={onCancel}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+function QuickAddCommodity({ type, fields, onSave, onCancel }) {
+  const [form, setForm] = useState({ type, field_id: '', type_of_forage: '', cutting: '1st', stack_number: '', bale_count: '', avg_bale_weight_lbs: '', type_crop: '', seed_details: '', estimated_tons_per_acre: '' });
+  const [saving, setSaving] = useState(false);
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const payload = { ...form };
+      if (type === 'Forage' && payload.bale_count && payload.avg_bale_weight_lbs) {
+        payload.estimated_stack_tonnage = (parseInt(payload.bale_count) * parseFloat(payload.avg_bale_weight_lbs)) / 2000;
+      }
+      const c = await api.commodities.create(payload);
+      onSave(c);
+    } finally { setSaving(false); }
+  };
+  return (
+    <div className="mt-2 p-3 bg-slate-800 rounded-lg border border-slate-700 space-y-2">
+      <div className="text-xs text-slate-400 font-medium">New {type} Commodity</div>
+      <select className="input" value={form.field_id} onChange={e => setForm(f => ({ ...f, field_id: e.target.value }))}>
+        <option value="">Field (optional)</option>
+        {fields.map(f => <option key={f.id} value={f.id}>{f.field_name}</option>)}
+      </select>
+      {type === 'Forage' ? <>
+        <input className="input" placeholder="Forage type (Alfalfa, Timothy…)" value={form.type_of_forage} onChange={e => setForm(f => ({ ...f, type_of_forage: e.target.value }))} autoFocus />
+        <div className="grid grid-cols-2 gap-2">
+          <input className="input" placeholder="Stack # (optional)" value={form.stack_number} onChange={e => setForm(f => ({ ...f, stack_number: e.target.value }))} />
+          <select className="input" value={form.cutting} onChange={e => setForm(f => ({ ...f, cutting: e.target.value }))}>
+            {['1st','2nd','3rd','4th','5th'].map(c => <option key={c}>{c}</option>)}
+          </select>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <input className="input" placeholder="Bale count" type="number" value={form.bale_count} onChange={e => setForm(f => ({ ...f, bale_count: e.target.value }))} />
+          <input className="input" placeholder="Avg bale wt (lbs)" type="number" value={form.avg_bale_weight_lbs} onChange={e => setForm(f => ({ ...f, avg_bale_weight_lbs: e.target.value }))} />
+        </div>
+      </> : <>
+        <input className="input" placeholder="Crop type (Wheat, Barley…)" value={form.type_crop} onChange={e => setForm(f => ({ ...f, type_crop: e.target.value }))} autoFocus />
+        <div className="grid grid-cols-2 gap-2">
+          <input className="input" placeholder="Seed variety (optional)" value={form.seed_details} onChange={e => setForm(f => ({ ...f, seed_details: e.target.value }))} />
+          <input className="input" placeholder="Est. tons/acre" type="number" value={form.estimated_tons_per_acre} onChange={e => setForm(f => ({ ...f, estimated_tons_per_acre: e.target.value }))} />
+        </div>
+      </>}
+      <div className="flex gap-2">
+        <button className="btn-primary !py-1 text-xs" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Add'}</button>
+        <button className="btn-secondary !py-1 text-xs" onClick={onCancel}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
 export default function Loads() {
+  const { farm } = useFarm();
   const [rows, setRows] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [fields, setFields] = useState([]);
@@ -20,25 +118,33 @@ export default function Loads() {
   const [form, setForm] = useState(emptyLoad);
   const [saving, setSaving] = useState(false);
   const [filterType, setFilterType] = useState('All');
+  const [quickAdd, setQuickAdd] = useState(null); // 'customer' | 'field' | 'commodity'
 
-  const load = async () => {
+  const loadData = async () => {
     const [l, c, f, co] = await Promise.all([
       api.loads.list(), api.customers.list(), api.fields.list(), api.commodities.list()
     ]);
     setRows(l); setCustomers(c); setFields(f); setCommodities(co);
     setLoading(false);
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { loadData(); }, []);
 
-  const openAdd = () => { setForm({ ...emptyLoad, date: new Date().toISOString().slice(0, 10) }); setModal('add'); };
-  const openEdit = (row) => { setForm({ ...row }); setModal({ edit: row }); };
-  const closeModal = () => setModal(null);
+  const openAdd = () => {
+    setForm({
+      ...emptyLoad,
+      date: new Date().toISOString().slice(0, 10),
+      shipper: farm?.name || '',
+    });
+    setQuickAdd(null);
+    setModal('add');
+  };
+  const openEdit = (row) => { setForm({ ...row }); setQuickAdd(null); setModal({ edit: row }); };
+  const closeModal = () => { setModal(null); setQuickAdd(null); };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm(f => {
       const next = { ...f, [name]: value };
-      // Auto-calc net weight
       if (['grossWeight', 'tareWeight'].includes(name)) {
         const gross = parseFloat(name === 'grossWeight' ? value : f.grossWeight) || 0;
         const tare = parseFloat(name === 'tareWeight' ? value : f.tareWeight) || 0;
@@ -61,7 +167,7 @@ export default function Loads() {
     try {
       if (modal === 'add') await api.loads.create(payload);
       else await api.loads.update(modal.edit.id, payload);
-      await load(); closeModal();
+      await loadData(); closeModal();
     } finally { setSaving(false); }
   };
 
@@ -69,6 +175,23 @@ export default function Loads() {
     if (!confirm('Delete this load?')) return;
     await api.loads.delete(id);
     setRows(r => r.filter(x => x.id !== id));
+  };
+
+  // Quick-add callbacks
+  const onCustomerAdded = (c) => {
+    setCustomers(prev => [...prev, c]);
+    setForm(f => ({ ...f, customerId: c.id }));
+    setQuickAdd(null);
+  };
+  const onFieldAdded = (f) => {
+    setFields(prev => [...prev, f]);
+    setForm(frm => ({ ...frm, fieldId: f.id }));
+    setQuickAdd(null);
+  };
+  const onCommodityAdded = (c) => {
+    setCommodities(prev => [...prev, c]);
+    setForm(f => ({ ...f, commodityId: c.id }));
+    setQuickAdd(null);
   };
 
   const lookup = (arr, id, key) => arr.find(x => x.id === id)?.[key] || '—';
@@ -121,23 +244,23 @@ export default function Loads() {
                 {sortedRows.map(row => (
                   <tr key={row.id} className="table-row">
                     <td className="px-4 py-3 font-mono text-xs text-slate-400">{row.date}</td>
-                    <td className="px-4 py-3 text-slate-200">{lookup(customers, row.customerId, 'companyName')}</td>
-                    <td className="px-4 py-3 text-slate-400">{lookup(fields, row.fieldId, 'fieldName')}</td>
+                    <td className="px-4 py-3 text-slate-200">{row.customer_name || lookup(customers, row.customerId, 'company_name')}</td>
+                    <td className="px-4 py-3 text-slate-400">{row.field_name || lookup(fields, row.fieldId, 'field_name')}</td>
                     <td className="px-4 py-3">
                       <span className={row.type === 'Forage' ? 'badge-forage' : 'badge-grain'}>{row.type}</span>
-                      {row.type === 'Forage' && row.baleCount && (
-                        <span className="ml-1.5 text-xs text-slate-500">{row.baleCount} bales</span>
+                      {row.type === 'Forage' && row.bale_count && (
+                        <span className="ml-1.5 text-xs text-slate-500">{row.bale_count} bales</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-slate-400 text-xs">{row.shipper || '—'}</td>
                     <td className="px-4 py-3 text-xs text-slate-400">
                       {row.driver && <span>{row.driver}</span>}
-                      {row.truckNumber && <span className="ml-1 font-mono text-slate-500">#{row.truckNumber}</span>}
-                      {!row.driver && !row.truckNumber && '—'}
+                      {row.truck_number && <span className="ml-1 font-mono text-slate-500">#{row.truck_number}</span>}
+                      {!row.driver && !row.truck_number && '—'}
                     </td>
-                    <td className="px-4 py-3 font-mono text-slate-400 text-xs">{row.grossWeight?.toLocaleString() || '—'}</td>
-                    <td className="px-4 py-3 font-mono text-slate-400 text-xs">{row.tareWeight?.toLocaleString() || '—'}</td>
-                    <td className="px-4 py-3 font-mono font-medium text-slate-100">{row.netWeight?.toLocaleString() || '—'}</td>
+                    <td className="px-4 py-3 font-mono text-slate-400 text-xs">{row.gross_weight?.toLocaleString() || '—'}</td>
+                    <td className="px-4 py-3 font-mono text-slate-400 text-xs">{row.tare_weight?.toLocaleString() || '—'}</td>
+                    <td className="px-4 py-3 font-mono font-medium text-slate-100">{row.net_weight?.toLocaleString() || '—'}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
                         <button className="btn-secondary !px-2 !py-1" onClick={() => openEdit(row)}><Pencil size={12} /></button>
@@ -171,38 +294,82 @@ export default function Loads() {
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label">Customer *</label>
-                <select className="input" name="customerId" value={form.customerId} onChange={handleChange}>
-                  <option value="">Select…</option>
-                  {customers.map(c => <option key={c.id} value={c.id}>{c.companyName}</option>)}
-                </select>
+
+            {/* Customer with quick-add */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="label !mb-0">Customer *</label>
+                {quickAdd !== 'customer' && (
+                  <button className="text-xs text-soil-400 hover:text-soil-300" onClick={() => setQuickAdd('customer')}>
+                    + New Customer
+                  </button>
+                )}
               </div>
-              <div>
-                <label className="label">Field</label>
-                <select className="input" name="fieldId" value={form.fieldId} onChange={handleChange}>
-                  <option value="">Select…</option>
-                  {fields.map(f => <option key={f.id} value={f.id}>{f.fieldName}</option>)}
-                </select>
-              </div>
+              <select className="input" name="customerId" value={form.customerId} onChange={handleChange}>
+                <option value="">Select…</option>
+                {customers.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
+              </select>
+              {quickAdd === 'customer' && (
+                <QuickAddCustomer onSave={onCustomerAdded} onCancel={() => setQuickAdd(null)} />
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label">Commodity</label>
-                <select className="input" name="commodityId" value={form.commodityId} onChange={handleChange}>
-                  <option value="">Select…</option>
-                  {filteredCommodities.map(c => (
-                    <option key={c.id} value={c.id}>
-                      {c.type === 'Forage' ? `${c.stackNumber || c.typeOfForage} (${c.typeOfForage})` : `${c.typeCrop}`}
-                    </option>
-                  ))}
-                </select>
+
+            {/* Field with quick-add */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="label !mb-0">Field</label>
+                {quickAdd !== 'field' && (
+                  <button className="text-xs text-soil-400 hover:text-soil-300" onClick={() => setQuickAdd('field')}>
+                    + New Field
+                  </button>
+                )}
               </div>
-              <div>
-                <label className="label">Shipper</label>
-                <input className="input" name="shipper" value={form.shipper} onChange={handleChange} placeholder="Trucking company" />
+              <select className="input" name="fieldId" value={form.fieldId} onChange={handleChange}>
+                <option value="">Select…</option>
+                {fields.map(f => <option key={f.id} value={f.id}>{f.field_name}</option>)}
+              </select>
+              {quickAdd === 'field' && (
+                <QuickAddField onSave={onFieldAdded} onCancel={() => setQuickAdd(null)} />
+              )}
+            </div>
+
+            {/* Commodity with quick-add */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="label !mb-0">Commodity</label>
+                {quickAdd !== 'commodity' && (
+                  <button className="text-xs text-soil-400 hover:text-soil-300" onClick={() => setQuickAdd('commodity')}>
+                    + New Commodity
+                  </button>
+                )}
               </div>
+              <select className="input" name="commodityId" value={form.commodityId} onChange={handleChange}>
+                <option value="">Select…</option>
+                {filteredCommodities.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.type === 'Forage'
+                      ? `${c.stack_number || c.type_of_forage} (${c.type_of_forage || ''})`
+                      : c.type_crop}
+                  </option>
+                ))}
+              </select>
+              {quickAdd === 'commodity' && (
+                <QuickAddCommodity
+                  type={form.type}
+                  fields={fields}
+                  onSave={onCommodityAdded}
+                  onCancel={() => setQuickAdd(null)}
+                />
+              )}
+            </div>
+
+            {/* Shipper - defaults to farm name */}
+            <div>
+              <label className="label">Shipper</label>
+              <input className="input" name="shipper" value={form.shipper} onChange={handleChange} placeholder="Trucking company" />
+              {form.shipper === farm?.name && (
+                <div className="text-xs text-slate-500 mt-1">Defaulted to your farm name</div>
+              )}
             </div>
 
             {form.type === 'Forage' && (
