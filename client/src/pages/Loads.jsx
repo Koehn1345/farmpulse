@@ -6,6 +6,14 @@ import { useFarm } from '../context/FarmContext.jsx';
 import { Plus, Pencil, Trash2, Filter } from 'lucide-react';
 import ImageUpload from '../components/ImageUpload.jsx';
 
+const formatDate = (d) => {
+  if (!d) return '—';
+  const date = new Date(d);
+  const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(date.getUTCDate()).padStart(2, '0');
+  return `${mm}/${dd}/${date.getUTCFullYear()}`;
+};
+
 const emptyLoad = {
   date: '', customerId: '', commodityId: '', fieldId: '', shipper: '',
   type: 'Forage', baleCount: '', grossWeight: '', tareWeight: '', netWeight: '',
@@ -270,7 +278,7 @@ export default function Loads() {
             <table className="w-full text-sm whitespace-nowrap">
               <thead>
                 <tr className="border-b border-slate-800">
-                  {['Date', 'Customer', 'Field', 'Type', 'Shipper', 'Driver / Truck', 'Gross', 'Tare', 'Net (lbs)', ''].map(h => (
+                  {['Date', 'Customer', 'Field', 'Type', 'Shipper', 'Driver / Truck', 'Gross', 'Tare', 'Net (lbs)', 'Tons', ''].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -278,7 +286,7 @@ export default function Loads() {
               <tbody>
                 {sortedRows.map(row => (
                   <tr key={row.id} className="table-row">
-                    <td className="px-4 py-3 font-mono text-xs text-slate-400">{row.date}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-slate-400">{formatDate(row.date)}</td>
                     <td className="px-4 py-3 text-slate-200">{row.customer_name || lookup(customers, row.customerId, 'company_name')}</td>
                     <td className="px-4 py-3 text-slate-400">{row.field_name || lookup(fields, row.fieldId, 'field_name')}</td>
                     <td className="px-4 py-3">
@@ -296,6 +304,7 @@ export default function Loads() {
                     <td className="px-4 py-3 font-mono text-slate-400 text-xs">{row.gross_weight?.toLocaleString() || '—'}</td>
                     <td className="px-4 py-3 font-mono text-slate-400 text-xs">{row.tare_weight?.toLocaleString() || '—'}</td>
                     <td className="px-4 py-3 font-mono font-medium text-slate-100">{row.net_weight?.toLocaleString() || '—'}</td>
+                    <td className="px-4 py-3 font-mono text-slate-400 text-xs">{row.net_weight ? (row.net_weight / 2000).toFixed(2) : '—'}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
                         <button className="btn-secondary !px-2 !py-1" onClick={() => openEdit(row)}><Pencil size={12} /></button>
@@ -305,7 +314,7 @@ export default function Loads() {
                   </tr>
                 ))}
                 {sortedRows.length === 0 && (
-                  <tr><td colSpan={10} className="px-4 py-12 text-center text-slate-500">No loads logged yet.</td></tr>
+                  <tr><td colSpan={11} className="px-4 py-12 text-center text-slate-500">No loads logged yet.</td></tr>
                 )}
               </tbody>
             </table>
