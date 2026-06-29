@@ -43,6 +43,7 @@ export default function Fields() {
     if (!confirm('Delete this field?')) return;
     await api.fields.delete(id);
     setRows(r => r.filter(x => x.id !== id));
+    setViewField(null);
   };
 
   const totalAcres = rows.reduce((s, r) => s + (parseFloat(r.acres) || 0), 0);
@@ -69,7 +70,6 @@ export default function Fields() {
                 <th className="text-left px-6 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">Field Name</th>
                 <th className="text-right px-6 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">Acres</th>
                 <th className="text-left px-6 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">Google Pin</th>
-                <th className="px-6 py-3" />
               </tr>
             </thead>
             <tbody>
@@ -91,16 +91,10 @@ export default function Fields() {
                       : <span className="text-slate-600 text-xs">—</span>
                     }
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex gap-2 justify-end">
-                      <button className="btn-secondary !px-2 !py-1" onClick={(e) => { e.stopPropagation(); openEdit(row); }}><Pencil size={13} /></button>
-                      <button className="btn-danger" onClick={(e) => { e.stopPropagation(); handleDelete(row.id); }}><Trash2 size={13} /></button>
-                    </div>
-                  </td>
                 </tr>
               ))}
               {rows.length === 0 && (
-                <tr><td colSpan={4} className="px-6 py-12 text-center text-slate-500">No fields yet. Add your first one.</td></tr>
+                <tr><td colSpan={3} className="px-6 py-12 text-center text-slate-500">No fields yet. Add your first one.</td></tr>
               )}
             </tbody>
           </table>
@@ -137,7 +131,29 @@ export default function Fields() {
         const years = [...new Set(fieldCommodities.map(c => c.year))].sort((a, b) => b - a);
         const filtered = yearFilter === 'All' ? fieldCommodities : fieldCommodities.filter(c => c.year === yearFilter);
         return (
-          <Modal title={`${viewField.field_name} — Stacks & Grain`} onClose={() => setViewField(null)} wide>
+          <Modal title={viewField.field_name} onClose={() => setViewField(null)} wide>
+            <div className="flex items-start justify-between mb-5 pb-4 border-b border-slate-800">
+              <div className="space-y-1.5 text-sm">
+                <div className="flex items-center gap-2 text-slate-300">
+                  <Ruler size={13} className="text-slate-500" />
+                  {viewField.acres ? `${parseFloat(viewField.acres).toFixed(1)} acres` : 'No acreage set'}
+                </div>
+                {viewField.google_pin ? (
+                  <a href={viewField.google_pin} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-soil-400 hover:text-soil-300 text-xs underline underline-offset-2">
+                    <MapPin size={13} /> View on map
+                  </a>
+                ) : (
+                  <div className="flex items-center gap-2 text-slate-600 text-xs">
+                    <MapPin size={13} /> No map pin set
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <button className="btn-secondary !px-2 !py-1" onClick={() => { openEdit(viewField); setViewField(null); }}><Pencil size={13} /></button>
+                <button className="btn-danger" onClick={() => handleDelete(viewField.id)}><Trash2 size={13} /></button>
+              </div>
+            </div>
+            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Stacks & Grain</div>
             {years.length > 0 && (
               <div className="flex items-center gap-2 mb-4">
                 <button

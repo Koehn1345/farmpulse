@@ -3,7 +3,7 @@ import { api } from '../lib/api.js';
 import Modal from '../components/Modal.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import { useFarm } from '../context/FarmContext.jsx';
-import { Plus, Pencil, Trash2, Filter } from 'lucide-react';
+import { Plus, Pencil, Trash2, Filter, FileImage } from 'lucide-react';
 import ImageUpload from '../components/ImageUpload.jsx';
 import { formatDate } from '../lib/format.js';
 
@@ -123,6 +123,7 @@ export default function Loads() {
   const [saving, setSaving] = useState(false);
   const [filterType, setFilterType] = useState('All');
   const [quickAdd, setQuickAdd] = useState(null); // 'customer' | 'field' | 'commodity'
+  const [viewRow, setViewRow] = useState(null);
 
   const loadData = async () => {
     const [l, c, f, co] = await Promise.all([
@@ -211,6 +212,7 @@ export default function Loads() {
     if (!confirm('Delete this load?')) return;
     await api.loads.delete(id);
     setRows(r => r.filter(x => x.id !== id));
+    setViewRow(null);
   };
 
   // Quick-add callbacks
@@ -230,7 +232,6 @@ export default function Loads() {
     setQuickAdd(null);
   };
 
-  const lookup = (arr, id, key) => arr.find(x => x.id === id)?.[key] || '—';
   const filtered = filterType === 'All' ? rows : rows.filter(r => r.type === filterType);
   const sortedRows = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
   const filteredCommodities = commodities.filter(c => c.type === form.type);
@@ -271,17 +272,17 @@ export default function Loads() {
             <table className="w-full text-sm whitespace-nowrap">
               <thead>
                 <tr className="border-b border-slate-800">
-                  {['Date', 'Customer', 'Field', 'Type', 'Shipper', 'Driver / Truck', 'Gross', 'Tare', 'Net (lbs)', 'Tons', ''].map(h => (
+                  {['Date', 'Customer', 'Field', 'Type', 'Shipper', 'Driver / Truck', 'Gross', 'Tare', 'Net (lbs)', 'Tons'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {sortedRows.map(row => (
-                  <tr key={row.id} className="table-row">
+                  <tr key={row.id} className="table-row cursor-pointer" onClick={() => setViewRow(row)}>
                     <td className="px-4 py-3 font-mono text-xs text-slate-400">{formatDate(row.date)}</td>
-                    <td className="px-4 py-3 text-slate-200">{row.customer_name || lookup(customers, row.customerId, 'company_name')}</td>
-                    <td className="px-4 py-3 text-slate-400">{row.field_name || lookup(fields, row.fieldId, 'field_name')}</td>
+                    <td className="px-4 py-3 text-slate-200">{row.customer_name || '—'}</td>
+                    <td className="px-4 py-3 text-slate-400">{row.field_name || '—'}</td>
                     <td className="px-4 py-3">
                       <span className={row.type === 'Forage' ? 'badge-forage' : 'badge-grain'}>{typeLabel(row.type)}</span>
                       {row.type === 'Forage' && row.bale_count && (
@@ -298,16 +299,10 @@ export default function Loads() {
                     <td className="px-4 py-3 font-mono text-slate-400 text-xs">{row.tare_weight?.toLocaleString() || '—'}</td>
                     <td className="px-4 py-3 font-mono font-medium text-slate-100">{row.net_weight?.toLocaleString() || '—'}</td>
                     <td className="px-4 py-3 font-mono text-slate-400 text-xs">{row.net_weight ? (row.net_weight / 2000).toFixed(2) : '—'}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <button className="btn-secondary !px-2 !py-1" onClick={() => openEdit(row)}><Pencil size={12} /></button>
-                        <button className="btn-danger" onClick={() => handleDelete(row.id)}><Trash2 size={12} /></button>
-                      </div>
-                    </td>
                   </tr>
                 ))}
                 {sortedRows.length === 0 && (
-                  <tr><td colSpan={11} className="px-4 py-12 text-center text-slate-500">No loads logged yet.</td></tr>
+                  <tr><td colSpan={10} className="px-4 py-12 text-center text-slate-500">No loads logged yet.</td></tr>
                 )}
               </tbody>
             </table>
@@ -469,6 +464,57 @@ export default function Loads() {
                 {saving ? 'Saving…' : 'Save Load'}
               </button>
               <button className="btn-secondary" onClick={closeModal}>Cancel</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {viewRow && (
+        <Modal title={`Load — ${formatDate(viewRow.date)}`} onClose={() => setViewRow(null)} wide>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div><div className="label">Customer</div><div className="text-slate-100">{viewRow.customer_name || '—'}</div></div>
+              <div><div className="label">Field</div><div className="text-slate-100">{viewRow.field_name || '—'}</div></div>
+              <div>
+                <div className="label">Type</div>
+                <span className={viewRow.type === 'Forage' ? 'badge-forage' : 'badge-grain'}>{typeLabel(viewRow.type)}</span>
+                {viewRow.type === 'Forage' && viewRow.bale_count && <span className="ml-1.5 text-xs text-slate-500">{viewRow.bale_count} bales</span>}
+              </div>
+              <div><div className="label">Shipper</div><div className="text-slate-100">{viewRow.shipper || '—'}</div></div>
+              <div><div className="label">Driver</div><div className="text-slate-100">{viewRow.driver || '—'}</div></div>
+              <div><div className="label">Truck #</div><div className="text-slate-100">{viewRow.truck_number || '—'}</div></div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-4 text-sm pt-2 border-t border-slate-800">
+              <div><div className="label">Gross</div><div className="font-mono text-slate-100">{viewRow.gross_weight?.toLocaleString() || '—'}</div></div>
+              <div><div className="label">Tare</div><div className="font-mono text-slate-100">{viewRow.tare_weight?.toLocaleString() || '—'}</div></div>
+              <div><div className="label">Net (lbs)</div><div className="font-mono text-slate-100 font-medium">{viewRow.net_weight?.toLocaleString() || '—'}</div></div>
+              <div><div className="label">Tons</div><div className="font-mono text-slate-100">{viewRow.net_weight ? (viewRow.net_weight / 2000).toFixed(2) : '—'}</div></div>
+            </div>
+
+            {(viewRow.bol_url || viewRow.scale_ticket_url || viewRow.misc_url) && (
+              <div className="pt-2 border-t border-slate-800">
+                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Paperwork</div>
+                <div className="grid grid-cols-3 gap-3">
+                  {[['BOL', viewRow.bol_url], ['Scale Ticket', viewRow.scale_ticket_url], ['Misc', viewRow.misc_url]].map(([label, url]) => (
+                    url ? (
+                      <a key={label} href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 p-3 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 transition-colors text-xs text-slate-300">
+                        <FileImage size={16} className="text-soil-400 shrink-0" /> {label}
+                      </a>
+                    ) : null
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-2">
+              <button className="btn-primary flex-1 justify-center" onClick={() => { openEdit(viewRow); setViewRow(null); }}>
+                <Pencil size={13} /> Edit
+              </button>
+              <button className="btn-danger flex-1 justify-center" onClick={() => handleDelete(viewRow.id)}>
+                <Trash2 size={13} /> Delete
+              </button>
+              <button className="btn-secondary" onClick={() => setViewRow(null)}>Close</button>
             </div>
           </div>
         </Modal>

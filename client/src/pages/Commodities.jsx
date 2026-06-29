@@ -59,6 +59,7 @@ export default function Commodities() {
     if (!confirm('Delete this commodity?')) return;
     await api.commodities.delete(id);
     setRows(r => r.filter(x => x.id !== id));
+    setViewRow(null);
   };
 
   const fieldName = (id) => fields.find(f => f.id === id)?.field_name || '—';
@@ -95,7 +96,7 @@ export default function Commodities() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-800">
-                {['Year', 'Stack #', 'Field', 'Commodity', 'Cutting', 'Bales', 'Est. Tons', 'Actual Tons', '$/Ton', ''].map(h => (
+                {['Year', 'Stack #', 'Field', 'Commodity', 'Cutting', 'Bales', 'Est. Tons', 'Actual Tons', '$/Ton'].map(h => (
                   <th key={h} className="text-left px-5 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -112,15 +113,9 @@ export default function Commodities() {
                   <td className="px-5 py-3 text-slate-300 font-mono">{row.estimated_stack_tonnage ? parseFloat(row.estimated_stack_tonnage).toFixed(1) : '—'}</td>
                   <td className="px-5 py-3">{row.actual_stack_tonnage ? <span className="text-emerald-400 font-mono">{parseFloat(row.actual_stack_tonnage).toFixed(1)}</span> : <span className="text-slate-600 text-xs">Pending</span>}</td>
                   <td className="px-5 py-3 font-mono text-slate-300">{row.price_per_ton ? `$${parseFloat(row.price_per_ton).toFixed(2)}` : '—'}</td>
-                  <td className="px-5 py-3">
-                    <div className="flex gap-2">
-                      <button className="btn-secondary !px-2 !py-1" onClick={(e) => { e.stopPropagation(); openEdit(row); }}><Pencil size={12} /></button>
-                      <button className="btn-danger" onClick={(e) => { e.stopPropagation(); handleDelete(row.id); }}><Trash2 size={12} /></button>
-                    </div>
-                  </td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={10} className="px-5 py-12 text-center text-slate-500">No stacks yet.</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={9} className="px-5 py-12 text-center text-slate-500">No stacks yet.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -129,7 +124,7 @@ export default function Commodities() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-800">
-                {['Year', 'Crop', 'Field', 'Seed', 'Est. Tons', 'Actual Tons', '$/Ton', ''].map(h => (
+                {['Year', 'Crop', 'Field', 'Seed', 'Est. Tons', 'Actual Tons', '$/Ton'].map(h => (
                   <th key={h} className="text-left px-5 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -144,15 +139,9 @@ export default function Commodities() {
                   <td className="px-5 py-3 font-mono text-slate-300">{row.estimated_total_tons ? parseFloat(row.estimated_total_tons).toFixed(1) : '—'}</td>
                   <td className="px-5 py-3">{row.actual_tons ? <span className="text-amber-400 font-mono">{parseFloat(row.actual_tons).toFixed(1)}</span> : <span className="text-slate-600 text-xs">Pending</span>}</td>
                   <td className="px-5 py-3 font-mono text-slate-300">{row.price_per_ton ? `$${parseFloat(row.price_per_ton).toFixed(2)}` : '—'}</td>
-                  <td className="px-5 py-3">
-                    <div className="flex gap-2">
-                      <button className="btn-secondary !px-2 !py-1" onClick={(e) => { e.stopPropagation(); openEdit(row); }}><Pencil size={12} /></button>
-                      <button className="btn-danger" onClick={(e) => { e.stopPropagation(); handleDelete(row.id); }}><Trash2 size={12} /></button>
-                    </div>
-                  </td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={8} className="px-5 py-12 text-center text-slate-500">No grain fields yet.</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={7} className="px-5 py-12 text-center text-slate-500">No grain fields yet.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -224,10 +213,25 @@ export default function Commodities() {
         const cols = viewRow.type === 'Forage' ? 5 : 4;
         return (
           <Modal
-            title={`Loads — ${viewRow.type === 'Forage' ? (viewRow.stack_number || viewRow.type_of_forage) : viewRow.type_crop}`}
+            title={viewRow.type === 'Forage' ? (viewRow.stack_number || viewRow.type_of_forage) : viewRow.type_crop}
             onClose={() => setViewRow(null)}
             wide
           >
+            <div className="flex items-start justify-between mb-5 pb-4 border-b border-slate-800">
+              <div className="space-y-1.5 text-sm text-slate-300">
+                <div className="flex items-center gap-2">
+                  <span className={viewRow.type === 'Forage' ? 'badge-forage' : 'badge-grain'}>{typeLabel(viewRow.type)}</span>
+                  <span className="text-slate-400">{viewRow.year}</span>
+                </div>
+                <div>{fieldName(viewRow.field_id)}</div>
+                <div className="text-xs text-slate-400">{viewRow.price_per_ton ? `$${parseFloat(viewRow.price_per_ton).toFixed(2)}/ton` : 'No price set'}</div>
+              </div>
+              <div className="flex gap-2">
+                <button className="btn-secondary !px-2 !py-1" onClick={() => { openEdit(viewRow); setViewRow(null); }}><Pencil size={13} /></button>
+                <button className="btn-danger" onClick={() => handleDelete(viewRow.id)}><Trash2 size={13} /></button>
+              </div>
+            </div>
+            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Loads</div>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-800">

@@ -15,6 +15,7 @@ export default function Income() {
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
+  const [viewRow, setViewRow] = useState(null);
 
   const load = async () => {
     const [i, c, f] = await Promise.all([api.income.list(), api.customers.list(), api.fields.list()]);
@@ -58,6 +59,7 @@ export default function Income() {
     if (!confirm('Delete this income entry?')) return;
     await api.income.delete(id);
     setRows(r => r.filter(x => x.id !== id));
+    setViewRow(null);
   };
 
   const sorted = [...rows].sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -88,41 +90,29 @@ export default function Income() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-800">
-                {['Date', 'Customer', 'Field', 'Notes', 'Source', 'Amount', ''].map(h => (
+                {['Date', 'Customer', 'Field', 'Notes', 'Source', 'Amount'].map(h => (
                   <th key={h} className={`px-5 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider ${h === 'Amount' ? 'text-right' : 'text-left'}`}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {sorted.map(row => (
-                <tr key={row.id} className="table-row">
+                <tr key={row.id} className="table-row cursor-pointer" onClick={() => setViewRow(row)}>
                   <td className="px-5 py-3 font-mono text-xs text-slate-400">{row.date}</td>
                   <td className="px-5 py-3 text-slate-200">{row.customer_name || '—'}</td>
                   <td className="px-5 py-3 text-slate-400">{row.field_name || '—'}</td>
                   <td className="px-5 py-3 text-slate-400 text-xs max-w-xs truncate">{row.notes || '—'}</td>
                   <td className="px-5 py-3">
                     {row.load_id
-                      ? <span className="inline-flex items-center gap-1 text-xs text-soil-400" title="Auto-calculated from a load — edit the load or its commodity's price to change this"><Truck size={12} /> Auto</span>
+                      ? <span className="inline-flex items-center gap-1 text-xs text-soil-400"><Truck size={12} /> Auto</span>
                       : <span className="text-xs text-slate-500">Manual</span>
                     }
                   </td>
                   <td className="px-5 py-3 text-right font-semibold text-emerald-400">{fmt(row.amount)}</td>
-                  <td className="px-5 py-3">
-                    <div className="flex gap-2 justify-end">
-                      {row.load_id ? (
-                        <span className="text-xs text-slate-600 px-2">Linked to load</span>
-                      ) : (
-                        <>
-                          <button className="btn-secondary !px-2 !py-1" onClick={() => openEdit(row)}><Pencil size={12} /></button>
-                          <button className="btn-danger" onClick={() => handleDelete(row.id)}><Trash2 size={12} /></button>
-                        </>
-                      )}
-                    </div>
-                  </td>
                 </tr>
               ))}
               {sorted.length === 0 && (
-                <tr><td colSpan={7} className="px-5 py-12 text-center text-slate-500">No income entries yet.</td></tr>
+                <tr><td colSpan={6} className="px-5 py-12 text-center text-slate-500">No income entries yet.</td></tr>
               )}
             </tbody>
             {sorted.length > 0 && (
@@ -130,7 +120,6 @@ export default function Income() {
                 <tr className="border-t border-slate-700 bg-slate-900/50">
                   <td colSpan={5} className="px-5 py-3 text-xs text-slate-400 font-medium">Total</td>
                   <td className="px-5 py-3 text-right font-bold text-emerald-300 text-base">{fmt(total)}</td>
-                  <td />
                 </tr>
               </tfoot>
             )}
@@ -173,6 +162,46 @@ export default function Income() {
               </button>
               <button className="btn-secondary" onClick={closeModal}>Cancel</button>
             </div>
+          </div>
+        </Modal>
+      )}
+
+      {viewRow && (
+        <Modal title="Income Entry" onClose={() => setViewRow(null)}>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div><div className="label">Date</div><div className="text-slate-100">{viewRow.date}</div></div>
+              <div><div className="label">Amount</div><div className="text-emerald-400 font-semibold">{fmt(viewRow.amount)}</div></div>
+              <div><div className="label">Customer</div><div className="text-slate-100">{viewRow.customer_name || '—'}</div></div>
+              <div><div className="label">Field</div><div className="text-slate-100">{viewRow.field_name || '—'}</div></div>
+            </div>
+            <div>
+              <div className="label">Notes</div>
+              <div className="text-slate-300 text-sm">{viewRow.notes || '—'}</div>
+            </div>
+            <div>
+              <div className="label">Source</div>
+              {viewRow.load_id
+                ? <div className="inline-flex items-center gap-1.5 text-sm text-soil-400"><Truck size={14} /> Auto-calculated from a load</div>
+                : <div className="text-sm text-slate-400">Manual entry</div>
+              }
+            </div>
+
+            {viewRow.load_id ? (
+              <div className="text-xs text-slate-500 pt-2 border-t border-slate-800">
+                This entry is linked to a load and updates automatically. To change it, edit the load or its commodity's price per ton.
+              </div>
+            ) : (
+              <div className="flex gap-3 pt-2 border-t border-slate-800">
+                <button className="btn-primary flex-1 justify-center" onClick={() => { openEdit(viewRow); setViewRow(null); }}>
+                  <Pencil size={13} /> Edit
+                </button>
+                <button className="btn-danger flex-1 justify-center" onClick={() => handleDelete(viewRow.id)}>
+                  <Trash2 size={13} /> Delete
+                </button>
+                <button className="btn-secondary" onClick={() => setViewRow(null)}>Close</button>
+              </div>
+            )}
           </div>
         </Modal>
       )}

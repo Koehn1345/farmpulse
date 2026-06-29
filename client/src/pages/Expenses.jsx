@@ -14,6 +14,7 @@ export default function Expenses() {
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
+  const [viewRow, setViewRow] = useState(null);
 
   const load = async () => {
     const [e, f] = await Promise.all([api.expenses.list(), api.fields.list()]);
@@ -57,6 +58,7 @@ export default function Expenses() {
     if (!confirm('Delete this expense?')) return;
     await api.expenses.delete(id);
     setRows(r => r.filter(x => x.id !== id));
+    setViewRow(null);
   };
 
   const sorted = [...rows].sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -104,29 +106,23 @@ export default function Expenses() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-800">
-                {['Date', 'Vendor', 'Field', 'Notes', 'Amount', ''].map(h => (
+                {['Date', 'Vendor', 'Field', 'Notes', 'Amount'].map(h => (
                   <th key={h} className={`px-5 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider ${h === 'Amount' ? 'text-right' : 'text-left'}`}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {sorted.map(row => (
-                <tr key={row.id} className="table-row">
+                <tr key={row.id} className="table-row cursor-pointer" onClick={() => setViewRow(row)}>
                   <td className="px-5 py-3 font-mono text-xs text-slate-400">{row.date}</td>
                   <td className="px-5 py-3 text-slate-200 font-medium">{row.vendor}</td>
                   <td className="px-5 py-3 text-slate-400">{row.field_name || '—'}</td>
                   <td className="px-5 py-3 text-slate-400 text-xs max-w-xs truncate">{row.notes || '—'}</td>
                   <td className="px-5 py-3 text-right font-semibold text-red-400">{fmt(row.amount)}</td>
-                  <td className="px-5 py-3">
-                    <div className="flex gap-2 justify-end">
-                      <button className="btn-secondary !px-2 !py-1" onClick={() => openEdit(row)}><Pencil size={12} /></button>
-                      <button className="btn-danger" onClick={() => handleDelete(row.id)}><Trash2 size={12} /></button>
-                    </div>
-                  </td>
                 </tr>
               ))}
               {sorted.length === 0 && (
-                <tr><td colSpan={6} className="px-5 py-12 text-center text-slate-500">No expenses yet.</td></tr>
+                <tr><td colSpan={5} className="px-5 py-12 text-center text-slate-500">No expenses yet.</td></tr>
               )}
             </tbody>
             {sorted.length > 0 && (
@@ -134,7 +130,6 @@ export default function Expenses() {
                 <tr className="border-t border-slate-700 bg-slate-900/50">
                   <td colSpan={4} className="px-5 py-3 text-xs text-slate-400 font-medium">Total</td>
                   <td className="px-5 py-3 text-right font-bold text-red-300 text-base">{fmt(total)}</td>
-                  <td />
                 </tr>
               </tfoot>
             )}
@@ -173,6 +168,32 @@ export default function Expenses() {
                 {saving ? 'Saving…' : 'Save Expense'}
               </button>
               <button className="btn-secondary" onClick={closeModal}>Cancel</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {viewRow && (
+        <Modal title="Expense" onClose={() => setViewRow(null)}>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div><div className="label">Date</div><div className="text-slate-100">{viewRow.date}</div></div>
+              <div><div className="label">Amount</div><div className="text-red-400 font-semibold">{fmt(viewRow.amount)}</div></div>
+              <div><div className="label">Vendor</div><div className="text-slate-100">{viewRow.vendor}</div></div>
+              <div><div className="label">Field</div><div className="text-slate-100">{viewRow.field_name || '—'}</div></div>
+            </div>
+            <div>
+              <div className="label">Notes</div>
+              <div className="text-slate-300 text-sm">{viewRow.notes || '—'}</div>
+            </div>
+            <div className="flex gap-3 pt-2 border-t border-slate-800">
+              <button className="btn-primary flex-1 justify-center" onClick={() => { openEdit(viewRow); setViewRow(null); }}>
+                <Pencil size={13} /> Edit
+              </button>
+              <button className="btn-danger flex-1 justify-center" onClick={() => handleDelete(viewRow.id)}>
+                <Trash2 size={13} /> Delete
+              </button>
+              <button className="btn-secondary" onClick={() => setViewRow(null)}>Close</button>
             </div>
           </div>
         </Modal>
