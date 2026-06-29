@@ -4,11 +4,13 @@ import Modal from '../components/Modal.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import { useFarm } from '../context/FarmContext.jsx';
 import { Plus, Pencil, Trash2, Filter } from 'lucide-react';
+import ImageUpload from '../components/ImageUpload.jsx';
 
 const emptyLoad = {
   date: '', customerId: '', commodityId: '', fieldId: '', shipper: '',
   type: 'Forage', baleCount: '', grossWeight: '', tareWeight: '', netWeight: '',
   driver: '', truckNumber: '',
+  bol_url: '', scale_ticket_url: '', misc_url: '',
 };
 
 // Inline quick-add sub-forms
@@ -402,6 +404,28 @@ export default function Loads() {
               <div>
                 <label className="label">Truck #</label>
                 <input className="input" name="truckNumber" value={form.truckNumber} onChange={handleChange} placeholder="T-44" />
+              </div>
+            </div>
+
+            {/* Document uploads */}
+            <div className="pt-2 border-t border-slate-800">
+              <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Paperwork</div>
+              <div className="grid grid-cols-3 gap-3">
+                <ImageUpload
+                  label="BOL"
+                  value={form.bol_url}
+                  onChange={url => setForm(f => ({ ...f, bol_url: url }))}
+                />
+                <ImageUpload
+                  label="Scale Ticket"
+                  value={form.scale_ticket_url}
+                  onChange={url => setForm(f => ({ ...f, scale_ticket_url: url }))}
+                />
+                <ImageUpload
+                  label="Misc Paperwork"
+                  value={form.misc_url}
+                  onChange={url => setForm(f => ({ ...f, misc_url: url }))}
+                />
               </div>
             </div>
 
