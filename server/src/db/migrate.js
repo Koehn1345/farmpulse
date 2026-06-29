@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS commodities (
   farm_id UUID NOT NULL REFERENCES farms(id) ON DELETE CASCADE,
   type TEXT NOT NULL CHECK (type IN ('Forage', 'Grain')),
   field_id UUID REFERENCES fields(id),
+  year INT,
   -- Forage fields
   stack_number TEXT,
   type_of_forage TEXT,

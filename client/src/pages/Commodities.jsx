@@ -5,8 +5,9 @@ import PageHeader from '../components/PageHeader.jsx';
 import { Plus, Pencil, Trash2, Wheat, Layers } from 'lucide-react';
 import { formatDate } from '../lib/format.js';
 
-const emptyForage = { type: 'Forage', field_id: '', stack_number: '', type_of_forage: '', cutting: '1st', bale_count: '', avg_bale_weight_lbs: '', actual_stack_tonnage: '' };
-const emptyGrain = { type: 'Grain', field_id: '', type_crop: '', seed_details: '', estimated_total_tons: '', actual_tons: '' };
+const currentYear = new Date().getFullYear();
+const emptyForage = { type: 'Forage', field_id: '', year: String(currentYear), stack_number: '', type_of_forage: '', cutting: '1st', bale_count: '', avg_bale_weight_lbs: '', actual_stack_tonnage: '' };
+const emptyGrain = { type: 'Grain', field_id: '', year: String(currentYear), type_crop: '', seed_details: '', estimated_total_tons: '', actual_tons: '' };
 const CUTTINGS = ['1st', '2nd', '3rd', '4th', '5th'];
 const typeLabel = (t) => t === 'Forage' ? 'Stacks' : 'Grain';
 
@@ -28,13 +29,13 @@ export default function Commodities() {
   useEffect(() => { load(); }, []);
 
   const openAdd = () => { setForm(tab === 'Forage' ? emptyForage : emptyGrain); setModal('add'); };
-  const openEdit = (row) => { setForm({ ...row, bale_count: String(row.bale_count || ''), avg_bale_weight_lbs: String(row.avg_bale_weight_lbs || ''), actual_stack_tonnage: String(row.actual_stack_tonnage || ''), estimated_total_tons: String(row.estimated_total_tons || ''), actual_tons: String(row.actual_tons || '') }); setModal({ edit: row }); };
+  const openEdit = (row) => { setForm({ ...row, year: String(row.year || currentYear), bale_count: String(row.bale_count || ''), avg_bale_weight_lbs: String(row.avg_bale_weight_lbs || ''), actual_stack_tonnage: String(row.actual_stack_tonnage || ''), estimated_total_tons: String(row.estimated_total_tons || ''), actual_tons: String(row.actual_tons || '') }); setModal({ edit: row }); };
   const closeModal = () => setModal(null);
   const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
   const handleSave = async () => {
     setSaving(true);
-    const payload = { ...form };
+    const payload = { ...form, year: parseInt(form.year) || currentYear };
     if (form.type === 'Forage') {
       payload.bale_count = parseInt(form.bale_count) || null;
       payload.avg_bale_weight_lbs = parseFloat(form.avg_bale_weight_lbs) || null;
@@ -94,7 +95,7 @@ export default function Commodities() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-800">
-                {['Stack #', 'Field', 'Commodity', 'Cutting', 'Bales', 'Est. Tons', 'Actual Tons', ''].map(h => (
+                {['Year', 'Stack #', 'Field', 'Commodity', 'Cutting', 'Bales', 'Est. Tons', 'Actual Tons', ''].map(h => (
                   <th key={h} className="text-left px-5 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -102,6 +103,7 @@ export default function Commodities() {
             <tbody>
               {filtered.map(row => (
                 <tr key={row.id} className="table-row cursor-pointer" onClick={() => setViewRow(row)}>
+                  <td className="px-5 py-3 font-mono text-xs text-slate-400">{row.year || '—'}</td>
                   <td className="px-5 py-3 font-mono text-xs text-slate-300">{row.stack_number || '—'}</td>
                   <td className="px-5 py-3 text-slate-200">{fieldName(row.field_id)}</td>
                   <td className="px-5 py-3 text-slate-200">{row.type_of_forage}</td>
@@ -117,7 +119,7 @@ export default function Commodities() {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={8} className="px-5 py-12 text-center text-slate-500">No stacks yet.</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={9} className="px-5 py-12 text-center text-slate-500">No stacks yet.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -126,7 +128,7 @@ export default function Commodities() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-800">
-                {['Crop', 'Field', 'Seed', 'Est. Tons', 'Actual Tons', ''].map(h => (
+                {['Year', 'Crop', 'Field', 'Seed', 'Est. Tons', 'Actual Tons', ''].map(h => (
                   <th key={h} className="text-left px-5 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -134,6 +136,7 @@ export default function Commodities() {
             <tbody>
               {filtered.map(row => (
                 <tr key={row.id} className="table-row cursor-pointer" onClick={() => setViewRow(row)}>
+                  <td className="px-5 py-3 font-mono text-xs text-slate-400">{row.year || '—'}</td>
                   <td className="px-5 py-3 font-medium text-slate-100">{row.type_crop}</td>
                   <td className="px-5 py-3 text-slate-200">{fieldName(row.field_id)}</td>
                   <td className="px-5 py-3 text-slate-400 text-xs">{row.seed_details || '—'}</td>
@@ -147,7 +150,7 @@ export default function Commodities() {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={8} className="px-5 py-12 text-center text-slate-500">No grain fields yet.</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={7} className="px-5 py-12 text-center text-slate-500">No grain fields yet.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -157,7 +160,8 @@ export default function Commodities() {
         <Modal title={`${modal === 'add' ? 'Add' : 'Edit'} ${typeLabel(form.type)}`} onClose={closeModal} wide>
           {form.type === 'Forage' ? (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div><label className="label">Year</label><input className="input" type="number" name="year" value={form.year} onChange={handleChange} placeholder={String(currentYear)} /></div>
                 <div><label className="label">Stack Number</label><input className="input" name="stack_number" value={form.stack_number} onChange={handleChange} placeholder="STK-001" /></div>
                 <div><label className="label">Field</label>
                   <select className="input" name="field_id" value={form.field_id} onChange={handleChange}>
@@ -182,7 +186,8 @@ export default function Commodities() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div><label className="label">Year</label><input className="input" type="number" name="year" value={form.year} onChange={handleChange} placeholder={String(currentYear)} /></div>
                 <div><label className="label">Crop Type</label><input className="input" name="type_crop" value={form.type_crop} onChange={handleChange} placeholder="Winter Wheat, Barley…" /></div>
                 <div><label className="label">Field</label>
                   <select className="input" name="field_id" value={form.field_id} onChange={handleChange}>

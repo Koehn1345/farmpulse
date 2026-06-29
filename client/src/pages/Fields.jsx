@@ -134,8 +134,8 @@ export default function Fields() {
 
       {viewField && (() => {
         const fieldCommodities = commodities.filter(c => c.field_id === viewField.id);
-        const years = [...new Set(fieldCommodities.map(c => new Date(c.created_at).getFullYear()))].sort((a, b) => b - a);
-        const filtered = yearFilter === 'All' ? fieldCommodities : fieldCommodities.filter(c => new Date(c.created_at).getFullYear() === yearFilter);
+        const years = [...new Set(fieldCommodities.map(c => c.year))].sort((a, b) => b - a);
+        const filtered = yearFilter === 'All' ? fieldCommodities : fieldCommodities.filter(c => c.year === yearFilter);
         return (
           <Modal title={`${viewField.field_name} — Stacks & Grain`} onClose={() => setViewField(null)} wide>
             {years.length > 0 && (
@@ -176,7 +176,7 @@ export default function Fields() {
                     : (c.actual_tons ?? c.estimated_total_tons);
                   return (
                     <tr key={c.id} className="table-row">
-                      <td className="px-3 py-2 font-mono text-xs text-slate-400">{new Date(c.created_at).getFullYear()}</td>
+                      <td className="px-3 py-2 font-mono text-xs text-slate-400">{c.year || '—'}</td>
                       <td className="px-3 py-2"><span className={c.type === 'Forage' ? 'badge-forage' : 'badge-grain'}>{typeLabel(c.type)}</span></td>
                       <td className="px-3 py-2 text-slate-200">{c.type === 'Forage' ? (c.stack_number || c.type_of_forage) : c.type_crop}</td>
                       <td className="px-3 py-2 font-mono text-slate-100">{tons ? parseFloat(tons).toFixed(1) : '—'}</td>
