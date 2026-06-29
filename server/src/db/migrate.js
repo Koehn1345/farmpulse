@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS commodities (
   type TEXT NOT NULL CHECK (type IN ('Forage', 'Grain')),
   field_id UUID REFERENCES fields(id),
   year INT,
+  price_per_ton NUMERIC(10,2),
   -- Forage fields
   stack_number TEXT,
   type_of_forage TEXT,
@@ -111,6 +112,7 @@ CREATE TABLE IF NOT EXISTS income (
   date DATE NOT NULL,
   customer_id UUID REFERENCES customers(id),
   field_id UUID REFERENCES fields(id),
+  load_id UUID REFERENCES loads(id),
   amount NUMERIC(12,2) NOT NULL,
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -137,6 +139,7 @@ CREATE INDEX IF NOT EXISTS idx_commodities_farm ON commodities(farm_id) WHERE de
 CREATE INDEX IF NOT EXISTS idx_loads_farm ON loads(farm_id) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_loads_date ON loads(farm_id, date DESC) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_income_farm ON income(farm_id) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_income_load_id ON income(load_id) WHERE load_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_expenses_farm ON expenses(farm_id) WHERE deleted_at IS NULL;
 `;
 

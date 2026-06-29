@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 import Modal from '../components/Modal.jsx';
 import PageHeader from '../components/PageHeader.jsx';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Truck } from 'lucide-react';
 
 const empty = { date: '', customerId: '', fieldId: '', amount: '', notes: '' };
 const fmt = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n || 0);
@@ -24,14 +24,29 @@ export default function Income() {
   useEffect(() => { load(); }, []);
 
   const openAdd = () => { setForm({ ...empty, date: new Date().toISOString().slice(0, 10) }); setModal('add'); };
-  const openEdit = (row) => { setForm({ ...row, amount: String(row.amount) }); setModal({ edit: row }); };
+  const openEdit = (row) => {
+    setForm({
+      date: row.date ? row.date.slice(0, 10) : '',
+      customerId: row.customer_id || '',
+      fieldId: row.field_id || '',
+      amount: String(row.amount ?? ''),
+      notes: row.notes || '',
+    });
+    setModal({ edit: row });
+  };
   const closeModal = () => setModal(null);
   const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
   const handleSave = async () => {
     if (!form.date || !form.amount) return;
     setSaving(true);
-    const payload = { ...form, amount: parseFloat(form.amount) };
+    const payload = {
+      date: form.date,
+      customer_id: form.customerId || null,
+      field_id: form.fieldId || null,
+      amount: parseFloat(form.amount),
+      notes: form.notes,
+    };
     try {
       if (modal === 'add') await api.income.create(payload);
       else await api.income.update(modal.edit.id, payload);
@@ -45,7 +60,6 @@ export default function Income() {
     setRows(r => r.filter(x => x.id !== id));
   };
 
-  const lookup = (arr, id, key) => arr.find(x => x.id === id)?.[key] || '—';
   const sorted = [...rows].sort((a, b) => new Date(b.date) - new Date(a.date));
   const total = rows.reduce((s, r) => s + (r.amount || 0), 0);
 
@@ -74,7 +88,7 @@ export default function Income() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-800">
-                {['Date', 'Customer', 'Field', 'Notes', 'Amount', ''].map(h => (
+                {['Date', 'Customer', 'Field', 'Notes', 'Source', 'Amount', ''].map(h => (
                   <th key={h} className={`px-5 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider ${h === 'Amount' ? 'text-right' : 'text-left'}`}>{h}</th>
                 ))}
               </tr>
@@ -83,26 +97,38 @@ export default function Income() {
               {sorted.map(row => (
                 <tr key={row.id} className="table-row">
                   <td className="px-5 py-3 font-mono text-xs text-slate-400">{row.date}</td>
-                  <td className="px-5 py-3 text-slate-200">{lookup(customers, row.customerId, 'company_name')}</td>
-                  <td className="px-5 py-3 text-slate-400">{lookup(fields, row.fieldId, 'field_name')}</td>
+                  <td className="px-5 py-3 text-slate-200">{row.customer_name || '—'}</td>
+                  <td className="px-5 py-3 text-slate-400">{row.field_name || '—'}</td>
                   <td className="px-5 py-3 text-slate-400 text-xs max-w-xs truncate">{row.notes || '—'}</td>
+                  <td className="px-5 py-3">
+                    {row.load_id
+                      ? <span className="inline-flex items-center gap-1 text-xs text-soil-400" title="Auto-calculated from a load — edit the load or its commodity's price to change this"><Truck size={12} /> Auto</span>
+                      : <span className="text-xs text-slate-500">Manual</span>
+                    }
+                  </td>
                   <td className="px-5 py-3 text-right font-semibold text-emerald-400">{fmt(row.amount)}</td>
                   <td className="px-5 py-3">
                     <div className="flex gap-2 justify-end">
-                      <button className="btn-secondary !px-2 !py-1" onClick={() => openEdit(row)}><Pencil size={12} /></button>
-                      <button className="btn-danger" onClick={() => handleDelete(row.id)}><Trash2 size={12} /></button>
+                      {row.load_id ? (
+                        <span className="text-xs text-slate-600 px-2">Linked to load</span>
+                      ) : (
+                        <>
+                          <button className="btn-secondary !px-2 !py-1" onClick={() => openEdit(row)}><Pencil size={12} /></button>
+                          <button className="btn-danger" onClick={() => handleDelete(row.id)}><Trash2 size={12} /></button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
               ))}
               {sorted.length === 0 && (
-                <tr><td colSpan={6} className="px-5 py-12 text-center text-slate-500">No income entries yet.</td></tr>
+                <tr><td colSpan={7} className="px-5 py-12 text-center text-slate-500">No income entries yet.</td></tr>
               )}
             </tbody>
             {sorted.length > 0 && (
               <tfoot>
                 <tr className="border-t border-slate-700 bg-slate-900/50">
-                  <td colSpan={4} className="px-5 py-3 text-xs text-slate-400 font-medium">Total</td>
+                  <td colSpan={5} className="px-5 py-3 text-xs text-slate-400 font-medium">Total</td>
                   <td className="px-5 py-3 text-right font-bold text-emerald-300 text-base">{fmt(total)}</td>
                   <td />
                 </tr>

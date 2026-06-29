@@ -23,14 +23,29 @@ export default function Expenses() {
   useEffect(() => { load(); }, []);
 
   const openAdd = () => { setForm({ ...empty, date: new Date().toISOString().slice(0, 10) }); setModal('add'); };
-  const openEdit = (row) => { setForm({ ...row, amount: String(row.amount) }); setModal({ edit: row }); };
+  const openEdit = (row) => {
+    setForm({
+      date: row.date ? row.date.slice(0, 10) : '',
+      vendor: row.vendor || '',
+      fieldId: row.field_id || '',
+      amount: String(row.amount ?? ''),
+      notes: row.notes || '',
+    });
+    setModal({ edit: row });
+  };
   const closeModal = () => setModal(null);
   const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
   const handleSave = async () => {
     if (!form.date || !form.amount) return;
     setSaving(true);
-    const payload = { ...form, amount: parseFloat(form.amount) };
+    const payload = {
+      date: form.date,
+      vendor: form.vendor,
+      field_id: form.fieldId || null,
+      amount: parseFloat(form.amount),
+      notes: form.notes,
+    };
     try {
       if (modal === 'add') await api.expenses.create(payload);
       else await api.expenses.update(modal.edit.id, payload);
@@ -44,7 +59,6 @@ export default function Expenses() {
     setRows(r => r.filter(x => x.id !== id));
   };
 
-  const lookup = (arr, id, key) => arr.find(x => x.id === id)?.[key] || '—';
   const sorted = [...rows].sort((a, b) => new Date(b.date) - new Date(a.date));
   const total = rows.reduce((s, r) => s + (r.amount || 0), 0);
 
@@ -100,7 +114,7 @@ export default function Expenses() {
                 <tr key={row.id} className="table-row">
                   <td className="px-5 py-3 font-mono text-xs text-slate-400">{row.date}</td>
                   <td className="px-5 py-3 text-slate-200 font-medium">{row.vendor}</td>
-                  <td className="px-5 py-3 text-slate-400">{lookup(fields, row.fieldId, 'field_name')}</td>
+                  <td className="px-5 py-3 text-slate-400">{row.field_name || '—'}</td>
                   <td className="px-5 py-3 text-slate-400 text-xs max-w-xs truncate">{row.notes || '—'}</td>
                   <td className="px-5 py-3 text-right font-semibold text-red-400">{fmt(row.amount)}</td>
                   <td className="px-5 py-3">

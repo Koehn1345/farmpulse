@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import pool from '../db/pool.js';
 import { requireAdmin } from '../middleware/auth.js';
+import { syncLoadIncome } from '../db/incomeSync.js';
 
 const router = Router();
 
@@ -68,6 +69,7 @@ router.post('/', async (req, res) => {
         [b.commodity_id]
       );
     }
+    await syncLoadIncome(rows[0]);
     res.status(201).json(rows[0]);
   } catch (err) {
     console.error(err);
@@ -94,6 +96,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
     ]
   );
   if (!rows.length) return res.status(404).json({ error: 'Not found' });
+  await syncLoadIncome(rows[0]);
   res.json(rows[0]);
 });
 
@@ -101,6 +104,10 @@ router.delete('/:id', requireAdmin, async (req, res) => {
   await pool.query(
     'UPDATE loads SET deleted_at=NOW() WHERE id=$1 AND farm_id=$2',
     [req.params.id, req.farmId]
+  );
+  await pool.query(
+    'UPDATE income SET deleted_at=NOW() WHERE load_id=$1 AND deleted_at IS NULL',
+    [req.params.id]
   );
   res.json({ success: true });
 });
