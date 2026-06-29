@@ -52,6 +52,8 @@ export default function Commodities() {
       if (modal === 'add') await api.commodities.create(payload);
       else await api.commodities.update(modal.edit.id, payload);
       await load(); closeModal();
+    } catch (err) {
+      alert(`Failed to save: ${err.message}`);
     } finally { setSaving(false); }
   };
 
@@ -201,7 +203,7 @@ export default function Commodities() {
             </div>
           )}
           <div className="flex gap-3 pt-4">
-            <button className="btn-primary flex-1 justify-center" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : `Save ${form.type}`}</button>
+            <button className="btn-primary flex-1 justify-center" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : `Save ${form.type === 'Forage' ? 'Stack' : 'Grain'}`}</button>
             <button className="btn-secondary" onClick={closeModal}>Cancel</button>
           </div>
         </Modal>
