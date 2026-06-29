@@ -5,6 +5,7 @@ import { DollarSign, Truck, Weight, TrendingUp } from 'lucide-react';
 
 const fmt = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 const fmtNum = (n) => new Intl.NumberFormat('en-US').format(n);
+const typeLabel = (t) => t === 'Forage' ? 'Stacks' : 'Grain';
 
 function StatCard({ label, value, sub, icon: Icon, accent }) {
   return (
@@ -78,7 +79,7 @@ export default function Dashboard() {
         <StatCard
           label="Total Loads"
           value={fmtNum(data.totalLoads)}
-          sub={`${data.forageLoads} forage · ${data.grainLoads} grain`}
+          sub={`${data.forageLoads} stacks · ${data.grainLoads} grain`}
           icon={Truck}
           accent="bg-blue-900/50 text-blue-400"
         />
@@ -163,7 +164,7 @@ export default function Dashboard() {
                   <td className="py-3 text-slate-400">{load.fieldName}</td>
                   <td className="py-3">
                     <span className={load.type === 'Forage' ? 'badge-forage' : 'badge-grain'}>
-                      {load.type}
+                      {typeLabel(load.type)}
                     </span>
                   </td>
                   <td className="py-3 text-right text-slate-200 font-mono">{fmtNum(load.netWeight)}</td>

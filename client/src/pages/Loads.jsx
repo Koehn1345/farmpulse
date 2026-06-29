@@ -64,6 +64,7 @@ function QuickAddField({ onSave, onCancel }) {
 function QuickAddCommodity({ type, fields, onSave, onCancel }) {
   const [form, setForm] = useState({ type, field_id: '', type_of_forage: '', cutting: '1st', stack_number: '', bale_count: '', avg_bale_weight_lbs: '', type_crop: '', seed_details: '', estimated_tons_per_acre: '' });
   const [saving, setSaving] = useState(false);
+  const displayType = type === 'Forage' ? 'Stack' : type;
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -77,13 +78,13 @@ function QuickAddCommodity({ type, fields, onSave, onCancel }) {
   };
   return (
     <div className="mt-2 p-3 bg-slate-800 rounded-lg border border-slate-700 space-y-2">
-      <div className="text-xs text-slate-400 font-medium">New {type} Commodity</div>
+      <div className="text-xs text-slate-400 font-medium">New {displayType} Commodity</div>
       <select className="input" value={form.field_id} onChange={e => setForm(f => ({ ...f, field_id: e.target.value }))}>
         <option value="">Field (optional)</option>
         {fields.map(f => <option key={f.id} value={f.id}>{f.field_name}</option>)}
       </select>
       {type === 'Forage' ? <>
-        <input className="input" placeholder="Forage type (Alfalfa, Timothy…)" value={form.type_of_forage} onChange={e => setForm(f => ({ ...f, type_of_forage: e.target.value }))} autoFocus />
+        <input className="input" placeholder="Stack type (Alfalfa, Timothy…)" value={form.type_of_forage} onChange={e => setForm(f => ({ ...f, type_of_forage: e.target.value }))} autoFocus />
         <div className="grid grid-cols-2 gap-2">
           <input className="input" placeholder="Stack # (optional)" value={form.stack_number} onChange={e => setForm(f => ({ ...f, stack_number: e.target.value }))} />
           <select className="input" value={form.cutting} onChange={e => setForm(f => ({ ...f, cutting: e.target.value }))}>
@@ -156,6 +157,8 @@ export default function Loads() {
     });
   };
 
+  const typeLabel = (t) => t === 'Forage' ? 'Stacks' : 'Grain';
+
   const handleSave = async () => {
     if (!form.date || !form.customerId) return;
     setSaving(true);
@@ -224,7 +227,7 @@ export default function Loads() {
               filterType === t ? 'bg-soil-500/30 text-soil-300 border border-soil-600' : 'text-slate-400 border border-slate-800 hover:border-slate-700'
             }`}
           >
-            {t} {t !== 'All' && `(${rows.filter(r => r.type === t).length})`}
+            {t === 'All' ? 'All' : typeLabel(t)} {t !== 'All' && `(${rows.filter(r => r.type === t).length})`}
           </button>
         ))}
       </div>
@@ -249,7 +252,7 @@ export default function Loads() {
                     <td className="px-4 py-3 text-slate-200">{row.customer_name || lookup(customers, row.customerId, 'company_name')}</td>
                     <td className="px-4 py-3 text-slate-400">{row.field_name || lookup(fields, row.fieldId, 'field_name')}</td>
                     <td className="px-4 py-3">
-                      <span className={row.type === 'Forage' ? 'badge-forage' : 'badge-grain'}>{row.type}</span>
+                      <span className={row.type === 'Forage' ? 'badge-forage' : 'badge-grain'}>{typeLabel(row.type)}</span>
                       {row.type === 'Forage' && row.bale_count && (
                         <span className="ml-1.5 text-xs text-slate-500">{row.bale_count} bales</span>
                       )}
@@ -291,8 +294,8 @@ export default function Loads() {
               <div>
                 <label className="label">Type</label>
                 <select className="input" name="type" value={form.type} onChange={handleChange}>
-                  <option>Forage</option>
-                  <option>Grain</option>
+                  <option value="Forage">Stacks</option>
+                  <option value="Grain">Grain</option>
                 </select>
               </div>
             </div>

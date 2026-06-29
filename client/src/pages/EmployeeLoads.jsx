@@ -51,6 +51,7 @@ function QuickAddField({ onSave, onCancel }) {
 function QuickAddCommodity({ type, fields, onSave, onCancel }) {
   const [form, setForm] = useState({ type, field_id: '', type_of_forage: '', cutting: '1st', stack_number: '', bale_count: '', avg_bale_weight_lbs: '', type_crop: '', seed_details: '' });
   const [saving, setSaving] = useState(false);
+  const displayType = type === 'Forage' ? 'Stacks' : type;
   const handleSave = async () => {
     setSaving(true);
     try { const c = await api.commodities.create(form); onSave(c); }
@@ -58,13 +59,13 @@ function QuickAddCommodity({ type, fields, onSave, onCancel }) {
   };
   return (
     <div className="mt-2 p-3 bg-slate-800 rounded-lg border border-slate-700 space-y-2">
-      <div className="text-xs text-slate-400 font-medium">New {type} Commodity</div>
+      <div className="text-xs text-slate-400 font-medium">New {displayType} Commodity</div>
       <select className="input" value={form.field_id} onChange={e => setForm(f => ({ ...f, field_id: e.target.value }))}>
         <option value="">Field (optional)</option>
         {fields.map(f => <option key={f.id} value={f.id}>{f.field_name}</option>)}
       </select>
       {type === 'Forage' ? <>
-        <input className="input" placeholder="Forage type (Alfalfa…)" value={form.type_of_forage} onChange={e => setForm(f => ({ ...f, type_of_forage: e.target.value }))} autoFocus />
+        <input className="input" placeholder="Stack type (Alfalfa…)" value={form.type_of_forage} onChange={e => setForm(f => ({ ...f, type_of_forage: e.target.value }))} autoFocus />
         <div className="grid grid-cols-2 gap-2">
           <input className="input" placeholder="Stack #" value={form.stack_number} onChange={e => setForm(f => ({ ...f, stack_number: e.target.value }))} />
           <select className="input" value={form.cutting} onChange={e => setForm(f => ({ ...f, cutting: e.target.value }))}>
@@ -188,11 +189,11 @@ export default function EmployeeLoads() {
             <div key={load.id} className="card-sm flex items-center justify-between">
               <div>
                 <div className="text-sm font-medium text-slate-200">{load.customer_name || '—'}</div>
-                <div className="text-xs text-slate-500 mt-0.5">{load.field_name || '—'} · {load.date} · {load.type}</div>
+                <div className="text-xs text-slate-500 mt-0.5">{load.field_name || '—'} · {load.date} · {load.type === 'Forage' ? 'Stacks' : 'Grain'}</div>
               </div>
               <div className="text-right">
                 <div className="font-mono text-sm text-slate-200">{load.net_weight?.toLocaleString()} lbs</div>
-                <span className={load.type === 'Forage' ? 'badge-forage' : 'badge-grain'}>{load.type}</span>
+                <span className={load.type === 'Forage' ? 'badge-forage' : 'badge-grain'}>{load.type === 'Forage' ? 'Stacks' : 'Grain'}</span>
               </div>
             </div>
           ))}
@@ -211,8 +212,8 @@ export default function EmployeeLoads() {
               <div>
                 <label className="label">Type</label>
                 <select className="input" name="type" value={form.type} onChange={handleChange}>
-                  <option>Forage</option>
-                  <option>Grain</option>
+                  <option value="Forage">Stacks</option>
+                  <option value="Grain">Grain</option>
                 </select>
               </div>
             </div>

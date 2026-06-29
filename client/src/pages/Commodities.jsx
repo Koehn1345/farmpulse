@@ -7,6 +7,7 @@ import { Plus, Pencil, Trash2, Wheat, Layers } from 'lucide-react';
 const emptyForage = { type: 'Forage', field_id: '', stack_number: '', type_of_forage: '', cutting: '1st', bale_count: '', avg_bale_weight_lbs: '', actual_stack_tonnage: '' };
 const emptyGrain = { type: 'Grain', field_id: '', type_crop: '', seed_details: '', estimated_tons_per_acre: '', actual_tons: '' };
 const CUTTINGS = ['1st', '2nd', '3rd', '4th', '5th'];
+const typeLabel = (t) => t === 'Forage' ? 'Stacks' : 'Grain';
 
 export default function Commodities() {
   const [rows, setRows] = useState([]);
@@ -65,8 +66,8 @@ export default function Commodities() {
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
       <PageHeader
         title="Commodities"
-        subtitle="Forage stacks and grain fields"
-        action={<button className="btn-primary" onClick={openAdd}><Plus size={15} /> Add {tab}</button>}
+        subtitle="Stacks and grain fields"
+        action={<button className="btn-primary" onClick={openAdd}><Plus size={15} /> Add {typeLabel(tab)}</button>}
       />
 
       <div className="flex gap-2 mb-6">
@@ -79,7 +80,7 @@ export default function Commodities() {
             }`}
           >
             {t === 'Forage' ? <Layers size={14} /> : <Wheat size={14} />}
-            {t}
+            {typeLabel(t)}
             <span className="ml-1 bg-slate-800 text-slate-400 text-xs px-1.5 py-0.5 rounded-full">{rows.filter(r => r.type === t).length}</span>
           </button>
         ))}
@@ -92,7 +93,7 @@ export default function Commodities() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-800">
-                {['Stack #', 'Field', 'Forage Type', 'Cutting', 'Bales', 'Est. Tons', 'Actual Tons', ''].map(h => (
+                {['Stack #', 'Field', 'Stack Type', 'Cutting', 'Bales', 'Est. Tons', 'Actual Tons', ''].map(h => (
                   <th key={h} className="text-left px-5 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -115,7 +116,7 @@ export default function Commodities() {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={8} className="px-5 py-12 text-center text-slate-500">No forage stacks yet.</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={8} className="px-5 py-12 text-center text-slate-500">No stacks yet.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -167,7 +168,7 @@ export default function Commodities() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div><label className="label">Type of Forage</label><input className="input" name="type_of_forage" value={form.type_of_forage} onChange={handleChange} placeholder="Alfalfa, Timothy…" /></div>
+                <div><label className="label">Stack Type</label><input className="input" name="type_of_forage" value={form.type_of_forage} onChange={handleChange} placeholder="Alfalfa, Timothy…" /></div>
                 <div><label className="label">Cutting</label>
                   <select className="input" name="cutting" value={form.cutting} onChange={handleChange}>
                     {CUTTINGS.map(c => <option key={c}>{c}</option>)}
