@@ -5,15 +5,22 @@ import PageHeader from '../components/PageHeader.jsx';
 import { Plus, Pencil, Trash2, MapPin, Ruler } from 'lucide-react';
 
 const empty = { field_name: '', acres: '', google_pin: '' };
+const typeLabel = (t) => t === 'Forage' ? 'Stack' : 'Grain';
 
 export default function Fields() {
   const [rows, setRows] = useState([]);
+  const [commodities, setCommodities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
+  const [viewField, setViewField] = useState(null);
+  const [yearFilter, setYearFilter] = useState('All');
 
-  const load = () => api.fields.list().then(setRows).finally(() => setLoading(false));
+  const load = async () => {
+    const [f, c] = await Promise.all([api.fields.list(), api.commodities.list()]);
+    setRows(f); setCommodities(c); setLoading(false);
+  };
   useEffect(() => { load(); }, []);
 
   const openAdd = () => { setForm(empty); setModal('add'); };
@@ -67,7 +74,7 @@ export default function Fields() {
             </thead>
             <tbody>
               {rows.map(row => (
-                <tr key={row.id} className="table-row">
+                <tr key={row.id} className="table-row cursor-pointer" onClick={() => { setViewField(row); setYearFilter('All'); }}>
                   <td className="px-6 py-4 font-medium text-slate-100 flex items-center gap-2">
                     <MapPin size={13} className="text-soil-400 shrink-0" />
                     {row.field_name}
@@ -80,14 +87,14 @@ export default function Fields() {
                   </td>
                   <td className="px-6 py-4">
                     {row.google_pin
-                      ? <a href={row.google_pin} target="_blank" rel="noreferrer" className="text-soil-400 hover:text-soil-300 text-xs underline underline-offset-2">View on map</a>
+                      ? <a href={row.google_pin} target="_blank" rel="noreferrer" className="text-soil-400 hover:text-soil-300 text-xs underline underline-offset-2" onClick={(e) => e.stopPropagation()}>View on map</a>
                       : <span className="text-slate-600 text-xs">—</span>
                     }
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex gap-2 justify-end">
-                      <button className="btn-secondary !px-2 !py-1" onClick={() => openEdit(row)}><Pencil size={13} /></button>
-                      <button className="btn-danger" onClick={() => handleDelete(row.id)}><Trash2 size={13} /></button>
+                      <button className="btn-secondary !px-2 !py-1" onClick={(e) => { e.stopPropagation(); openEdit(row); }}><Pencil size={13} /></button>
+                      <button className="btn-danger" onClick={(e) => { e.stopPropagation(); handleDelete(row.id); }}><Trash2 size={13} /></button>
                     </div>
                   </td>
                 </tr>
@@ -124,6 +131,67 @@ export default function Fields() {
           </div>
         </Modal>
       )}
+
+      {viewField && (() => {
+        const fieldCommodities = commodities.filter(c => c.field_id === viewField.id);
+        const years = [...new Set(fieldCommodities.map(c => new Date(c.created_at).getFullYear()))].sort((a, b) => b - a);
+        const filtered = yearFilter === 'All' ? fieldCommodities : fieldCommodities.filter(c => new Date(c.created_at).getFullYear() === yearFilter);
+        return (
+          <Modal title={`${viewField.field_name} — Stacks & Grain`} onClose={() => setViewField(null)} wide>
+            {years.length > 0 && (
+              <div className="flex items-center gap-2 mb-4">
+                <button
+                  onClick={() => setYearFilter('All')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    yearFilter === 'All' ? 'bg-soil-500/30 text-soil-300 border border-soil-600' : 'text-slate-400 border border-slate-800 hover:border-slate-700'
+                  }`}
+                >
+                  All Years
+                </button>
+                {years.map(y => (
+                  <button
+                    key={y}
+                    onClick={() => setYearFilter(y)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      yearFilter === y ? 'bg-soil-500/30 text-soil-300 border border-soil-600' : 'text-slate-400 border border-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    {y}
+                  </button>
+                ))}
+              </div>
+            )}
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-800">
+                  {['Year', 'Type', 'Name', 'Tons', ''].map(h => (
+                    <th key={h} className="text-left px-3 py-2 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(c => {
+                  const tons = c.type === 'Forage'
+                    ? (c.actual_stack_tonnage ?? c.estimated_stack_tonnage)
+                    : (c.actual_tons ?? c.estimated_total_tons);
+                  return (
+                    <tr key={c.id} className="table-row">
+                      <td className="px-3 py-2 font-mono text-xs text-slate-400">{new Date(c.created_at).getFullYear()}</td>
+                      <td className="px-3 py-2"><span className={c.type === 'Forage' ? 'badge-forage' : 'badge-grain'}>{typeLabel(c.type)}</span></td>
+                      <td className="px-3 py-2 text-slate-200">{c.type === 'Forage' ? (c.stack_number || c.type_of_forage) : c.type_crop}</td>
+                      <td className="px-3 py-2 font-mono text-slate-100">{tons ? parseFloat(tons).toFixed(1) : '—'}</td>
+                      <td className="px-3 py-2 text-xs text-slate-500">{c.actual_stack_tonnage || c.actual_tons ? 'Actual' : 'Est.'}</td>
+                    </tr>
+                  );
+                })}
+                {filtered.length === 0 && (
+                  <tr><td colSpan={5} className="px-3 py-8 text-center text-slate-500">No stacks or grain logged for this field{yearFilter !== 'All' ? ` in ${yearFilter}` : ''} yet.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </Modal>
+        );
+      })()}
     </div>
   );
 }
