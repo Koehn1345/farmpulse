@@ -62,7 +62,7 @@ function QuickAddField({ onSave, onCancel }) {
 }
 
 function QuickAddCommodity({ type, fields, onSave, onCancel }) {
-  const [form, setForm] = useState({ type, field_id: '', type_of_forage: '', cutting: '1st', stack_number: '', bale_count: '', avg_bale_weight_lbs: '', type_crop: '', seed_details: '', estimated_tons_per_acre: '' });
+  const [form, setForm] = useState({ type, field_id: '', type_of_forage: '', cutting: '1st', stack_number: '', bale_count: '', avg_bale_weight_lbs: '', type_crop: '', seed_details: '', estimated_total_tons: '' });
   const [saving, setSaving] = useState(false);
   const displayType = type === 'Forage' ? 'Stack' : type;
   const handleSave = async () => {
@@ -99,7 +99,7 @@ function QuickAddCommodity({ type, fields, onSave, onCancel }) {
         <input className="input" placeholder="Crop type (Wheat, Barley…)" value={form.type_crop} onChange={e => setForm(f => ({ ...f, type_crop: e.target.value }))} autoFocus />
         <div className="grid grid-cols-2 gap-2">
           <input className="input" placeholder="Seed variety (optional)" value={form.seed_details} onChange={e => setForm(f => ({ ...f, seed_details: e.target.value }))} />
-          <input className="input" placeholder="Est. tons/acre" type="number" value={form.estimated_tons_per_acre} onChange={e => setForm(f => ({ ...f, estimated_tons_per_acre: e.target.value }))} />
+          <input className="input" placeholder="Estimated tons" type="number" value={form.estimated_total_tons} onChange={e => setForm(f => ({ ...f, estimated_total_tons: e.target.value }))} />
         </div>
       </>}
       <div className="flex gap-2">
@@ -141,7 +141,27 @@ export default function Loads() {
     setQuickAdd(null);
     setModal('add');
   };
-  const openEdit = (row) => { setForm({ ...row }); setQuickAdd(null); setModal({ edit: row }); };
+  const openEdit = (row) => {
+    setForm({
+      date: row.date ? row.date.slice(0, 10) : '',
+      customerId: row.customer_id || '',
+      commodityId: row.commodity_id || '',
+      fieldId: row.field_id || '',
+      shipper: row.shipper || '',
+      type: row.type || 'Forage',
+      baleCount: row.bale_count ?? '',
+      grossWeight: row.gross_weight ?? '',
+      tareWeight: row.tare_weight ?? '',
+      netWeight: row.net_weight ?? '',
+      driver: row.driver || '',
+      truckNumber: row.truck_number || '',
+      bol_url: row.bol_url || '',
+      scale_ticket_url: row.scale_ticket_url || '',
+      misc_url: row.misc_url || '',
+    });
+    setQuickAdd(null);
+    setModal({ edit: row });
+  };
   const closeModal = () => { setModal(null); setQuickAdd(null); };
 
   const handleChange = (e) => {
@@ -163,11 +183,21 @@ export default function Loads() {
     if (!form.date || !form.customerId) return;
     setSaving(true);
     const payload = {
-      ...form,
-      baleCount: form.baleCount ? parseInt(form.baleCount) : null,
-      grossWeight: parseFloat(form.grossWeight) || null,
-      tareWeight: parseFloat(form.tareWeight) || null,
-      netWeight: parseFloat(form.netWeight) || null,
+      date: form.date,
+      customer_id: form.customerId || null,
+      commodity_id: form.commodityId || null,
+      field_id: form.fieldId || null,
+      shipper: form.shipper,
+      type: form.type,
+      bale_count: form.baleCount ? parseInt(form.baleCount) : null,
+      gross_weight: parseFloat(form.grossWeight) || null,
+      tare_weight: parseFloat(form.tareWeight) || null,
+      net_weight: parseFloat(form.netWeight) || null,
+      driver: form.driver,
+      truck_number: form.truckNumber,
+      bol_url: form.bol_url || null,
+      scale_ticket_url: form.scale_ticket_url || null,
+      misc_url: form.misc_url || null,
     };
     try {
       if (modal === 'add') await api.loads.create(payload);
