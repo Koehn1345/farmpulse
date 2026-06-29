@@ -40,7 +40,6 @@ app.use('/api', api);
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 // Serve built client in production
-if (process.env.NODE_ENV === 'production') {
   const clientDist = path.join(__dirname, '../../client/dist');
   app.use(express.static(clientDist));
   app.get('*', (req, res) => {
@@ -48,7 +47,6 @@ if (process.env.NODE_ENV === 'production') {
       res.sendFile(path.join(clientDist, 'index.html'));
     }
   });
-}
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`🌾 FarmPulse API running on port ${PORT}`));
