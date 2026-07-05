@@ -245,7 +245,7 @@ export default function Loads() {
         subtitle={`${rows.length} total haul tickets`}
         action={
           <button className="btn-primary" onClick={openAdd}>
-            <Plus size={15} /> Log Load
+            <Plus size={15} /> New Load
           </button>
         }
       />
