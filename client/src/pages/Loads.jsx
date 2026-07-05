@@ -264,6 +264,13 @@ export default function Loads() {
             {t === 'All' ? 'All' : typeLabel(t)} {t !== 'All' && `(${rows.filter(r => r.type === t).length})`}
           </button>
         ))}
+        <span className="ml-2 text-xs text-slate-500">
+          {rows.filter(r => !r.net_weight).length > 0 && (
+            <span className="px-2 py-0.5 rounded bg-amber-900/40 text-amber-400 border border-amber-800/50">
+              {rows.filter(r => !r.net_weight).length} New
+            </span>
+          )}
+        </span>
       </div>
 
       {loading ? (
@@ -274,7 +281,7 @@ export default function Loads() {
             <table className="w-full text-sm whitespace-nowrap">
               <thead>
                 <tr className="border-b border-slate-800">
-                  {['Date', 'Customer', 'Field', 'Type', 'BOL #', 'Shipper', 'Driver / Truck', 'Gross', 'Tare', 'Net (lbs)', 'Tons'].map(h => (
+                  {['Status', 'Date', 'Customer', 'Field', 'Type', 'BOL #', 'Shipper', 'Driver / Truck', 'Gross', 'Tare', 'Net (lbs)', 'Tons'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -282,6 +289,12 @@ export default function Loads() {
               <tbody>
                 {sortedRows.map(row => (
                   <tr key={row.id} className="table-row cursor-pointer" onClick={() => setViewRow(row)}>
+                    <td className="px-4 py-3">
+                      {row.net_weight
+                        ? <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-900/40 text-green-400 border border-green-800/50">Complete</span>
+                        : <span className="px-2 py-0.5 rounded text-xs font-medium bg-amber-900/40 text-amber-400 border border-amber-800/50">New</span>
+                      }
+                    </td>
                     <td className="px-4 py-3 font-mono text-xs text-slate-400">{formatDate(row.date)}</td>
                     <td className="px-4 py-3 text-slate-200">{row.customer_name || '—'}</td>
                     <td className="px-4 py-3 text-slate-400">{row.field_name || '—'}</td>
@@ -305,7 +318,7 @@ export default function Loads() {
                   </tr>
                 ))}
                 {sortedRows.length === 0 && (
-                  <tr><td colSpan={11} className="px-4 py-12 text-center text-slate-500">No loads logged yet.</td></tr>
+                  <tr><td colSpan={12} className="px-4 py-12 text-center text-slate-500">No loads logged yet.</td></tr>
                 )}
               </tbody>
             </table>
@@ -314,7 +327,7 @@ export default function Loads() {
       )}
 
       {modal && (
-        <Modal title={modal === 'add' ? 'Log Load' : 'Edit Load'} onClose={closeModal} wide>
+        <Modal title={modal === 'add' ? 'Create Load' : 'Edit Load'} onClose={closeModal} wide>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -407,68 +420,76 @@ export default function Loads() {
               )}
             </div>
 
-            {form.type === 'Forage' && (
-              <div>
-                <label className="label">Bale Count</label>
-                <input className="input" type="number" name="baleCount" value={form.baleCount} onChange={handleChange} placeholder="24" />
+            {/* Additional fields only shown when editing */}
+            {modal !== 'add' && <>
+              {form.type === 'Forage' && (
+                <div>
+                  <label className="label">Bale Count</label>
+                  <input className="input" type="number" name="baleCount" value={form.baleCount} onChange={handleChange} placeholder="24" />
+                </div>
+              )}
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="label">Gross Weight (lbs)</label>
+                  <input className="input" type="number" name="grossWeight" value={form.grossWeight} onChange={handleChange} placeholder="54000" />
+                </div>
+                <div>
+                  <label className="label">Tare Weight (lbs)</label>
+                  <input className="input" type="number" name="tareWeight" value={form.tareWeight} onChange={handleChange} placeholder="14000" />
+                </div>
+                <div>
+                  <label className="label">Net Weight (auto)</label>
+                  <input className="input font-mono bg-slate-700" type="number" name="netWeight" value={form.netWeight} onChange={handleChange} placeholder="40000" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="label">Driver</label>
+                  <input className="input" name="driver" value={form.driver} onChange={handleChange} placeholder="Driver name" />
+                </div>
+                <div>
+                  <label className="label">Truck #</label>
+                  <input className="input" name="truckNumber" value={form.truckNumber} onChange={handleChange} placeholder="T-44" />
+                </div>
+                <div>
+                  <label className="label">BOL #</label>
+                  <input className="input" name="bolNumber" value={form.bolNumber} onChange={handleChange} placeholder="BOL-1234" />
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-800">
+                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Paperwork</div>
+                <div className="grid grid-cols-3 gap-3">
+                  <ImageUpload
+                    label="BOL"
+                    value={form.bol_url}
+                    onChange={url => setForm(f => ({ ...f, bol_url: url }))}
+                  />
+                  <ImageUpload
+                    label="Scale Ticket"
+                    value={form.scale_ticket_url}
+                    onChange={url => setForm(f => ({ ...f, scale_ticket_url: url }))}
+                  />
+                  <ImageUpload
+                    label="Misc Paperwork"
+                    value={form.misc_url}
+                    onChange={url => setForm(f => ({ ...f, misc_url: url }))}
+                  />
+                </div>
+              </div>
+            </>}
+
+            {modal === 'add' && (
+              <div className="text-xs text-slate-500 bg-slate-800/50 rounded-lg px-3 py-2 border border-slate-700">
+                Weight, driver, and paperwork can be added later when the driver completes the load.
               </div>
             )}
 
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="label">Gross Weight (lbs)</label>
-                <input className="input" type="number" name="grossWeight" value={form.grossWeight} onChange={handleChange} placeholder="54000" />
-              </div>
-              <div>
-                <label className="label">Tare Weight (lbs)</label>
-                <input className="input" type="number" name="tareWeight" value={form.tareWeight} onChange={handleChange} placeholder="14000" />
-              </div>
-              <div>
-                <label className="label">Net Weight (auto)</label>
-                <input className="input font-mono bg-slate-700" type="number" name="netWeight" value={form.netWeight} onChange={handleChange} placeholder="40000" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="label">Driver</label>
-                <input className="input" name="driver" value={form.driver} onChange={handleChange} placeholder="Driver name" />
-              </div>
-              <div>
-                <label className="label">Truck #</label>
-                <input className="input" name="truckNumber" value={form.truckNumber} onChange={handleChange} placeholder="T-44" />
-              </div>
-              <div>
-                <label className="label">BOL #</label>
-                <input className="input" name="bolNumber" value={form.bolNumber} onChange={handleChange} placeholder="BOL-1234" />
-              </div>
-            </div>
-
-            {/* Document uploads */}
-            <div className="pt-2 border-t border-slate-800">
-              <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Paperwork</div>
-              <div className="grid grid-cols-3 gap-3">
-                <ImageUpload
-                  label="BOL"
-                  value={form.bol_url}
-                  onChange={url => setForm(f => ({ ...f, bol_url: url }))}
-                />
-                <ImageUpload
-                  label="Scale Ticket"
-                  value={form.scale_ticket_url}
-                  onChange={url => setForm(f => ({ ...f, scale_ticket_url: url }))}
-                />
-                <ImageUpload
-                  label="Misc Paperwork"
-                  value={form.misc_url}
-                  onChange={url => setForm(f => ({ ...f, misc_url: url }))}
-                />
-              </div>
-            </div>
-
             <div className="flex gap-3 pt-2">
               <button className="btn-primary flex-1 justify-center" onClick={handleSave} disabled={saving}>
-                {saving ? 'Saving…' : 'Save Load'}
+                {saving ? 'Saving…' : modal === 'add' ? 'Create Load' : 'Save Load'}
               </button>
               <button className="btn-secondary" onClick={closeModal}>Cancel</button>
             </div>
@@ -479,6 +500,12 @@ export default function Loads() {
       {viewRow && (
         <Modal title={`Load — ${formatDate(viewRow.date)}`} onClose={() => setViewRow(null)} wide>
           <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-1">
+              {viewRow.net_weight
+                ? <span className="px-2.5 py-1 rounded text-xs font-semibold bg-green-900/40 text-green-400 border border-green-800/50">Complete</span>
+                : <span className="px-2.5 py-1 rounded text-xs font-semibold bg-amber-900/40 text-amber-400 border border-amber-800/50">New — awaiting delivery info</span>
+              }
+            </div>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div><div className="label">Customer</div><div className="text-slate-100">{viewRow.customer_name || '—'}</div></div>
               <div><div className="label">Field</div><div className="text-slate-100">{viewRow.field_name || '—'}</div></div>
