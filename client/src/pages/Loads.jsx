@@ -10,7 +10,7 @@ import { formatDate } from '../lib/format.js';
 const emptyLoad = {
   date: '', customerId: '', commodityId: '', fieldId: '', shipper: '',
   type: 'Forage', baleCount: '', grossWeight: '', tareWeight: '', netWeight: '',
-  driver: '', truckNumber: '',
+  driver: '', truckNumber: '', bolNumber: '',
   bol_url: '', scale_ticket_url: '', misc_url: '',
 };
 
@@ -157,6 +157,7 @@ export default function Loads() {
       netWeight: row.net_weight ?? '',
       driver: row.driver || '',
       truckNumber: row.truck_number || '',
+      bolNumber: row.bol_number || '',
       bol_url: row.bol_url || '',
       scale_ticket_url: row.scale_ticket_url || '',
       misc_url: row.misc_url || '',
@@ -197,6 +198,7 @@ export default function Loads() {
       net_weight: parseFloat(form.netWeight) || null,
       driver: form.driver,
       truck_number: form.truckNumber,
+      bol_number: form.bolNumber || null,
       bol_url: form.bol_url || null,
       scale_ticket_url: form.scale_ticket_url || null,
       misc_url: form.misc_url || null,
@@ -272,7 +274,7 @@ export default function Loads() {
             <table className="w-full text-sm whitespace-nowrap">
               <thead>
                 <tr className="border-b border-slate-800">
-                  {['Date', 'Customer', 'Field', 'Type', 'Shipper', 'Driver / Truck', 'Gross', 'Tare', 'Net (lbs)', 'Tons'].map(h => (
+                  {['Date', 'Customer', 'Field', 'Type', 'BOL #', 'Shipper', 'Driver / Truck', 'Gross', 'Tare', 'Net (lbs)', 'Tons'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -289,6 +291,7 @@ export default function Loads() {
                         <span className="ml-1.5 text-xs text-slate-500">{row.bale_count} bales</span>
                       )}
                     </td>
+                    <td className="px-4 py-3 font-mono text-xs text-slate-300">{row.bol_number || '—'}</td>
                     <td className="px-4 py-3 text-slate-400 text-xs">{row.shipper || '—'}</td>
                     <td className="px-4 py-3 text-xs text-slate-400">
                       {row.driver && <span>{row.driver}</span>}
@@ -302,7 +305,7 @@ export default function Loads() {
                   </tr>
                 ))}
                 {sortedRows.length === 0 && (
-                  <tr><td colSpan={10} className="px-4 py-12 text-center text-slate-500">No loads logged yet.</td></tr>
+                  <tr><td colSpan={11} className="px-4 py-12 text-center text-slate-500">No loads logged yet.</td></tr>
                 )}
               </tbody>
             </table>
@@ -426,7 +429,7 @@ export default function Loads() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="label">Driver</label>
                 <input className="input" name="driver" value={form.driver} onChange={handleChange} placeholder="Driver name" />
@@ -434,6 +437,10 @@ export default function Loads() {
               <div>
                 <label className="label">Truck #</label>
                 <input className="input" name="truckNumber" value={form.truckNumber} onChange={handleChange} placeholder="T-44" />
+              </div>
+              <div>
+                <label className="label">BOL #</label>
+                <input className="input" name="bolNumber" value={form.bolNumber} onChange={handleChange} placeholder="BOL-1234" />
               </div>
             </div>
 
@@ -483,6 +490,7 @@ export default function Loads() {
               <div><div className="label">Shipper</div><div className="text-slate-100">{viewRow.shipper || '—'}</div></div>
               <div><div className="label">Driver</div><div className="text-slate-100">{viewRow.driver || '—'}</div></div>
               <div><div className="label">Truck #</div><div className="text-slate-100">{viewRow.truck_number || '—'}</div></div>
+              <div><div className="label">BOL #</div><div className="font-mono text-slate-100">{viewRow.bol_number || '—'}</div></div>
             </div>
 
             <div className="grid grid-cols-4 gap-4 text-sm pt-2 border-t border-slate-800">

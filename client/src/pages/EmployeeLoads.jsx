@@ -94,7 +94,7 @@ export default function EmployeeLoads() {
     date: new Date().toISOString().slice(0, 10),
     type: 'Forage', customerId: '', fieldId: '', commodityId: '',
     shipper: '', baleCount: '', grossWeight: '', tareWeight: '', netWeight: '',
-    driver: '', truckNumber: '',
+    driver: '', truckNumber: '', bolNumber: '',
     bol_url: '', scale_ticket_url: '', misc_url: '',
   });
   const [saving, setSaving] = useState(false);
@@ -150,6 +150,7 @@ export default function EmployeeLoads() {
         net_weight: parseFloat(form.netWeight) || null,
         driver: form.driver,
         truck_number: form.truckNumber,
+        bol_number: form.bolNumber || null,
         bol_url: form.bol_url || null,
         scale_ticket_url: form.scale_ticket_url || null,
         misc_url: form.misc_url || null,
@@ -158,7 +159,7 @@ export default function EmployeeLoads() {
       setTimeout(() => setSaved(false), 3000);
       setModal(false);
       setQuickAdd(null);
-      setForm(f => ({ ...f, customerId: '', fieldId: '', commodityId: '', baleCount: '', grossWeight: '', tareWeight: '', netWeight: '', driver: '', truckNumber: '', bol_url: '', scale_ticket_url: '', misc_url: '' }));
+      setForm(f => ({ ...f, customerId: '', fieldId: '', commodityId: '', baleCount: '', grossWeight: '', tareWeight: '', netWeight: '', driver: '', truckNumber: '', bolNumber: '', bol_url: '', scale_ticket_url: '', misc_url: '' }));
       await loadData();
     } finally { setSaving(false); }
   };
@@ -285,7 +286,7 @@ export default function EmployeeLoads() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="label">Driver</label>
                 <input className="input" name="driver" value={form.driver} onChange={handleChange} />
@@ -293,6 +294,10 @@ export default function EmployeeLoads() {
               <div>
                 <label className="label">Truck #</label>
                 <input className="input" name="truckNumber" value={form.truckNumber} onChange={handleChange} />
+              </div>
+              <div>
+                <label className="label">BOL #</label>
+                <input className="input" name="bolNumber" value={form.bolNumber} onChange={handleChange} placeholder="BOL-1234" />
               </div>
             </div>
 

@@ -48,14 +48,14 @@ router.post('/', async (req, res) => {
         farm_id, date, customer_id, commodity_id, field_id,
         shipper, type, bale_count, gross_weight, tare_weight, net_weight,
         driver, truck_number, logged_by_clerk_id,
-        bol_url, scale_ticket_url, misc_url
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
+        bol_number, bol_url, scale_ticket_url, misc_url
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
       [
         req.farmId, b.date, b.customer_id || null, b.commodity_id || null, b.field_id || null,
         b.shipper, b.type, b.bale_count || null,
         b.gross_weight || null, b.tare_weight || null, b.net_weight || null,
         b.driver, b.truck_number, req.clerkUserId,
-        b.bol_url || null, b.scale_ticket_url || null, b.misc_url || null,
+        b.bol_number || null, b.bol_url || null, b.scale_ticket_url || null, b.misc_url || null,
       ]
     );
 
@@ -79,37 +79,47 @@ router.post('/', async (req, res) => {
 
 // Edit - admin only
 router.put('/:id', requireAdmin, async (req, res) => {
-  const b = req.body;
-  const { rows } = await pool.query(
-    `UPDATE loads SET
-      date=$1, customer_id=$2, commodity_id=$3, field_id=$4,
-      shipper=$5, type=$6, bale_count=$7, gross_weight=$8,
-      tare_weight=$9, net_weight=$10, driver=$11, truck_number=$12,
-      bol_url=$13, scale_ticket_url=$14, misc_url=$15
-     WHERE id=$16 AND farm_id=$17 AND deleted_at IS NULL RETURNING *`,
-    [
-      b.date, b.customer_id || null, b.commodity_id || null, b.field_id || null,
-      b.shipper, b.type, b.bale_count || null, b.gross_weight || null,
-      b.tare_weight || null, b.net_weight || null, b.driver, b.truck_number,
-      b.bol_url || null, b.scale_ticket_url || null, b.misc_url || null,
-      req.params.id, req.farmId,
-    ]
-  );
-  if (!rows.length) return res.status(404).json({ error: 'Not found' });
-  await syncLoadIncome(rows[0]);
-  res.json(rows[0]);
+  try {
+    const b = req.body;
+    const { rows } = await pool.query(
+      `UPDATE loads SET
+        date=$1, customer_id=$2, commodity_id=$3, field_id=$4,
+        shipper=$5, type=$6, bale_count=$7, gross_weight=$8,
+        tare_weight=$9, net_weight=$10, driver=$11, truck_number=$12,
+        bol_number=$13, bol_url=$14, scale_ticket_url=$15, misc_url=$16
+       WHERE id=$17 AND farm_id=$18 AND deleted_at IS NULL RETURNING *`,
+      [
+        b.date, b.customer_id || null, b.commodity_id || null, b.field_id || null,
+        b.shipper, b.type, b.bale_count || null, b.gross_weight || null,
+        b.tare_weight || null, b.net_weight || null, b.driver, b.truck_number,
+        b.bol_number || null, b.bol_url || null, b.scale_ticket_url || null, b.misc_url || null,
+        req.params.id, req.farmId,
+      ]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Not found' });
+    await syncLoadIncome(rows[0]);
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.delete('/:id', requireAdmin, async (req, res) => {
-  await pool.query(
-    'UPDATE loads SET deleted_at=NOW() WHERE id=$1 AND farm_id=$2',
-    [req.params.id, req.farmId]
-  );
-  await pool.query(
-    'UPDATE income SET deleted_at=NOW() WHERE load_id=$1 AND deleted_at IS NULL',
-    [req.params.id]
-  );
-  res.json({ success: true });
+  try {
+    await pool.query(
+      'UPDATE loads SET deleted_at=NOW() WHERE id=$1 AND farm_id=$2',
+      [req.params.id, req.farmId]
+    );
+    await pool.query(
+      'UPDATE income SET deleted_at=NOW() WHERE load_id=$1 AND deleted_at IS NULL',
+      [req.params.id]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;

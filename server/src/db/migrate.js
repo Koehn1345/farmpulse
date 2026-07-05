@@ -101,6 +101,10 @@ CREATE TABLE IF NOT EXISTS loads (
   driver TEXT,
   truck_number TEXT,
   logged_by_clerk_id TEXT,
+  bol_number TEXT,
+  bol_url TEXT,
+  scale_ticket_url TEXT,
+  misc_url TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   deleted_at TIMESTAMPTZ
 );
