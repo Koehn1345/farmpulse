@@ -6,10 +6,10 @@ import { useFarm } from '../context/FarmContext.jsx';
 import { Plus, Pencil, Trash2, Fuel as FuelIcon } from 'lucide-react';
 import { formatDate } from '../lib/format.js';
 
-const FUEL_TYPES = ['Diesel', 'Gasoline', 'Propane', 'Other'];
+const FUEL_TYPES = ['On Road Diesel', 'Off Road Diesel', 'Gasolene'];
 
-const emptyEntry = { date: '', vehicle_id: '', fuel_type: 'Diesel', fuel_location: '', gallons: '' };
-const emptyVehicle = { name_number: '', make: '', fuel_type: 'Diesel' };
+const emptyEntry = { date: '', vehicle_id: '', fuel_type: 'On Road Diesel', fuel_location: '', gallons: '' };
+const emptyVehicle = { name_number: '', make: '', fuel_type: 'On Road Diesel' };
 
 function QuickAddVehicle({ onSave, onCancel }) {
   const [form, setForm] = useState(emptyVehicle);
@@ -74,7 +74,7 @@ export default function Fuel() {
     setForm({
       date: row.date ? row.date.slice(0, 10) : '',
       vehicle_id: row.vehicle_id || '',
-      fuel_type: row.fuel_type || 'Diesel',
+      fuel_type: row.fuel_type || 'On Road Diesel',
       fuel_location: row.fuel_location || '',
       gallons: row.gallons ?? '',
     });

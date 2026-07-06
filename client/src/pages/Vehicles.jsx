@@ -6,8 +6,8 @@ import { useFarm } from '../context/FarmContext.jsx';
 import { Plus, Pencil, Trash2, Car } from 'lucide-react';
 import { formatDate } from '../lib/format.js';
 
-const FUEL_TYPES = ['Diesel', 'Gasoline', 'Propane', 'Other'];
-const empty = { name_number: '', make: '', fuel_type: 'Diesel' };
+const FUEL_TYPES = ['On Road Diesel', 'Off Road Diesel', 'Gasolene'];
+const empty = { name_number: '', make: '', fuel_type: 'On Road Diesel' };
 
 export default function Vehicles() {
   const { isAdmin } = useFarm();
@@ -34,7 +34,7 @@ export default function Vehicles() {
   useEffect(() => { load(); }, []);
 
   const openAdd = () => { setForm(empty); setModal('add'); };
-  const openEdit = (row) => { setForm({ name_number: row.name_number, make: row.make || '', fuel_type: row.fuel_type || 'Diesel' }); setModal({ edit: row }); };
+  const openEdit = (row) => { setForm({ name_number: row.name_number, make: row.make || '', fuel_type: row.fuel_type || 'On Road Diesel' }); setModal({ edit: row }); };
   const closeModal = () => setModal(null);
   const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
