@@ -335,7 +335,7 @@ export default function Loads() {
             <table className="w-full text-sm whitespace-nowrap">
               <thead>
                 <tr className="border-b border-slate-800">
-                  {['', 'Status', 'Date', 'Customer', 'Field', 'Crop', 'Bales', 'BOL #', 'Shipper', 'Driver / Truck', 'Gross', 'Tare', 'Net (lbs)', 'Tons', 'Type'].map(h => (
+                  {['', 'Status', 'Date', 'Customer', 'Field', 'Crop', 'Shipper', 'Driver / Truck', 'Bales', 'BOL #', 'Gross', 'Tare', 'Net (lbs)', 'Tons', 'Type'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -378,14 +378,14 @@ export default function Loads() {
                           <td className="px-4 py-3 text-slate-200">{row.customer_name || '—'}</td>
                           <td className="px-4 py-3 text-slate-400">{row.field_name || '—'}</td>
                           <td className="px-4 py-3 text-slate-300 text-xs">{cropLabel(row)}</td>
-                          <td className="px-4 py-3 font-mono text-xs text-slate-400">{row.type === 'Forage' ? (row.bale_count ?? '—') : '—'}</td>
-                          <td className="px-4 py-3 font-mono text-xs text-slate-300">{row.bol_number || '—'}</td>
                           <td className="px-4 py-3 text-slate-400 text-xs">{row.shipper || '—'}</td>
                           <td className="px-4 py-3 text-xs text-slate-400">
                             {row.driver && <span>{row.driver}</span>}
                             {row.truck_number && <span className="ml-1 font-mono text-slate-500">#{row.truck_number}</span>}
                             {!row.driver && !row.truck_number && '—'}
                           </td>
+                          <td className="px-4 py-3 font-mono text-xs text-slate-400">{row.type === 'Forage' ? (row.bale_count ?? '—') : '—'}</td>
+                          <td className="px-4 py-3 font-mono text-xs text-slate-300">{row.bol_number || '—'}</td>
                           <td className="px-4 py-3 font-mono text-slate-400 text-xs">{row.gross_weight?.toLocaleString() || '—'}</td>
                           <td className="px-4 py-3 font-mono text-slate-400 text-xs">{row.tare_weight?.toLocaleString() || '—'}</td>
                           <td className="px-4 py-3 font-mono font-medium text-slate-100">{row.net_weight?.toLocaleString() || '—'}</td>
@@ -589,11 +589,11 @@ export default function Loads() {
               <div><div className="label">Customer</div><div className="text-slate-100">{viewRow.customer_name || '—'}</div></div>
               <div><div className="label">Field</div><div className="text-slate-100">{viewRow.field_name || '—'}</div></div>
               <div><div className="label">Crop</div><div className="text-slate-100">{cropLabel(viewRow)}</div></div>
-              <div><div className="label">Type</div><div className="text-slate-100">{typeLabel(viewRow.type)}</div></div>
-              <div><div className="label">Bales</div><div className="font-mono text-slate-100">{viewRow.type === 'Forage' ? (viewRow.bale_count ?? '—') : '—'}</div></div>
               <div><div className="label">Shipper</div><div className="text-slate-100">{viewRow.shipper || '—'}</div></div>
               <div><div className="label">Driver</div><div className="text-slate-100">{viewRow.driver || '—'}</div></div>
               <div><div className="label">Truck #</div><div className="text-slate-100">{viewRow.truck_number || '—'}</div></div>
+              <div><div className="label">Type</div><div className="text-slate-100">{typeLabel(viewRow.type)}</div></div>
+              <div><div className="label">Bales</div><div className="font-mono text-slate-100">{viewRow.type === 'Forage' ? (viewRow.bale_count ?? '—') : '—'}</div></div>
               <div><div className="label">BOL #</div><div className="font-mono text-slate-100">{viewRow.bol_number || '—'}</div></div>
             </div>
 
