@@ -505,11 +505,8 @@ export default function Loads() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div><div className="label">Customer</div><div className="text-slate-100">{viewRow.customer_name || '—'}</div></div>
               <div><div className="label">Field</div><div className="text-slate-100">{viewRow.field_name || '—'}</div></div>
-              <div>
-                <div className="label">Type</div>
-                <span className={viewRow.type === 'Forage' ? 'badge-forage' : 'badge-grain'}>{typeLabel(viewRow.type)}</span>
-                {viewRow.type === 'Forage' && viewRow.bale_count && <span className="ml-1.5 text-xs text-slate-500">{viewRow.bale_count} bales</span>}
-              </div>
+              <div><div className="label">Type</div><div className="text-slate-100">{typeLabel(viewRow.type)}</div></div>
+              <div><div className="label">Bales</div><div className="font-mono text-slate-100">{viewRow.type === 'Forage' ? (viewRow.bale_count ?? '—') : '—'}</div></div>
               <div><div className="label">Shipper</div><div className="text-slate-100">{viewRow.shipper || '—'}</div></div>
               <div><div className="label">Driver</div><div className="text-slate-100">{viewRow.driver || '—'}</div></div>
               <div><div className="label">Truck #</div><div className="text-slate-100">{viewRow.truck_number || '—'}</div></div>
