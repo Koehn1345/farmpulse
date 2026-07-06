@@ -3,7 +3,7 @@ import { api } from '../lib/api.js';
 import Modal from '../components/Modal.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import { useFarm } from '../context/FarmContext.jsx';
-import { Plus, Pencil, Trash2, Filter, FileImage, Calendar } from 'lucide-react';
+import { Plus, Pencil, Trash2, Filter, FileImage, Calendar, CheckCircle } from 'lucide-react';
 import ImageUpload from '../components/ImageUpload.jsx';
 import { formatDate } from '../lib/format.js';
 
@@ -334,7 +334,7 @@ export default function Loads() {
             <table className="w-full text-sm whitespace-nowrap">
               <thead>
                 <tr className="border-b border-slate-800">
-                  {['Status', 'Date', 'Customer', 'Field', 'Type', 'Bales', 'BOL #', 'Shipper', 'Driver / Truck', 'Gross', 'Tare', 'Net (lbs)', 'Tons'].map(h => (
+                  {['', 'Status', 'Date', 'Customer', 'Field', 'Type', 'Bales', 'BOL #', 'Shipper', 'Driver / Truck', 'Gross', 'Tare', 'Net (lbs)', 'Tons'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -342,6 +342,17 @@ export default function Loads() {
               <tbody>
                 {sortedRows.map(row => (
                   <tr key={row.id} className="table-row cursor-pointer" onClick={() => setViewRow(row)}>
+                    <td className="px-4 py-3">
+                      {!row.net_weight && (
+                        <button
+                          className="text-slate-500 hover:text-green-400 transition-colors"
+                          title="Complete this load"
+                          onClick={(e) => { e.stopPropagation(); openEdit(row); }}
+                        >
+                          <CheckCircle size={16} />
+                        </button>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       {row.net_weight
                         ? <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-900/40 text-green-400 border border-green-800/50">Complete</span>
@@ -367,7 +378,7 @@ export default function Loads() {
                   </tr>
                 ))}
                 {sortedRows.length === 0 && (
-                  <tr><td colSpan={13} className="px-4 py-12 text-center text-slate-500">No loads logged yet.</td></tr>
+                  <tr><td colSpan={14} className="px-4 py-12 text-center text-slate-500">No loads logged yet.</td></tr>
                 )}
               </tbody>
             </table>
