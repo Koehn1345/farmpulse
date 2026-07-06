@@ -204,51 +204,6 @@ export default function Fields() {
               )}
             </div>
 
-            <div className="mb-5 pb-4 border-b border-slate-800">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Crop History</div>
-                {isAdmin && !cropForm && (
-                  <button className="text-xs text-soil-400 hover:text-soil-300" onClick={openAddCrop}>+ Add Crop</button>
-                )}
-              </div>
-
-              {cropForm && (
-                <div className="mb-3 p-3 bg-slate-800 rounded-lg border border-slate-700 space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <input className="input" type="number" name="year" value={cropForm.year} onChange={handleCropChange} placeholder="2024" />
-                    <input className="input" name="crop" value={cropForm.crop} onChange={handleCropChange} placeholder="Corn, Soybeans…" autoFocus />
-                  </div>
-                  <input className="input" name="notes" value={cropForm.notes} onChange={handleCropChange} placeholder="Notes (optional)" />
-                  <div className="flex gap-2">
-                    <button className="btn-primary !py-1 text-xs" onClick={saveCrop} disabled={savingCrop}>{savingCrop ? 'Saving…' : 'Save'}</button>
-                    <button className="btn-secondary !py-1 text-xs" onClick={closeCropForm}>Cancel</button>
-                  </div>
-                </div>
-              )}
-
-              {fieldCropHistory.length > 0 ? (
-                <div className="space-y-1.5">
-                  {fieldCropHistory.map(entry => (
-                    <div key={entry.id} className="flex items-center justify-between text-sm">
-                      <div>
-                        <span className="font-mono text-xs text-slate-500 mr-2">{entry.year}</span>
-                        <span className="text-slate-200">{entry.crop}</span>
-                        {entry.notes && <span className="text-slate-500 text-xs ml-2">— {entry.notes}</span>}
-                      </div>
-                      {isAdmin && (
-                        <div className="flex gap-1">
-                          <button className="text-slate-500 hover:text-slate-300" onClick={() => openEditCrop(entry)}><Pencil size={12} /></button>
-                          <button className="text-slate-500 hover:text-red-400" onClick={() => deleteCrop(entry.id)}><Trash2 size={12} /></button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                !cropForm && <div className="text-xs text-slate-500">No crop history logged for this field.</div>
-              )}
-            </div>
-
             <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Stacks & Grain</div>
             {years.length > 0 && (
               <div className="flex items-center gap-2 mb-4">
@@ -301,6 +256,51 @@ export default function Fields() {
                 )}
               </tbody>
             </table>
+
+            <div className="mt-5 pt-4 border-t border-slate-800">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Crop History</div>
+                {isAdmin && !cropForm && (
+                  <button className="text-xs text-soil-400 hover:text-soil-300" onClick={openAddCrop}>+ Add Crop</button>
+                )}
+              </div>
+
+              {cropForm && (
+                <div className="mb-3 p-3 bg-slate-800 rounded-lg border border-slate-700 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <input className="input" type="number" name="year" value={cropForm.year} onChange={handleCropChange} placeholder="2024" />
+                    <input className="input" name="crop" value={cropForm.crop} onChange={handleCropChange} placeholder="Corn, Soybeans…" autoFocus />
+                  </div>
+                  <input className="input" name="notes" value={cropForm.notes} onChange={handleCropChange} placeholder="Notes (optional)" />
+                  <div className="flex gap-2">
+                    <button className="btn-primary !py-1 text-xs" onClick={saveCrop} disabled={savingCrop}>{savingCrop ? 'Saving…' : 'Save'}</button>
+                    <button className="btn-secondary !py-1 text-xs" onClick={closeCropForm}>Cancel</button>
+                  </div>
+                </div>
+              )}
+
+              {fieldCropHistory.length > 0 ? (
+                <div className="space-y-1.5">
+                  {fieldCropHistory.map(entry => (
+                    <div key={entry.id} className="flex items-center justify-between text-sm">
+                      <div>
+                        <span className="font-mono text-xs text-slate-500 mr-2">{entry.year}</span>
+                        <span className="text-slate-200">{entry.crop}</span>
+                        {entry.notes && <span className="text-slate-500 text-xs ml-2">— {entry.notes}</span>}
+                      </div>
+                      {isAdmin && (
+                        <div className="flex gap-1">
+                          <button className="text-slate-500 hover:text-slate-300" onClick={() => openEditCrop(entry)}><Pencil size={12} /></button>
+                          <button className="text-slate-500 hover:text-red-400" onClick={() => deleteCrop(entry.id)}><Trash2 size={12} /></button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                !cropForm && <div className="text-xs text-slate-500">No crop history logged for this field.</div>
+              )}
+            </div>
           </Modal>
         );
       })()}
