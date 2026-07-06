@@ -65,6 +65,21 @@ router.put('/team/:clerkUserId/role', requireAdmin, async (req, res) => {
   if (!['admin', 'employee', 'trucker'].includes(role)) {
     return res.status(400).json({ error: 'Invalid role' });
   }
+  if (role !== 'admin') {
+    const { rows: target } = await pool.query(
+      'SELECT role FROM farm_users WHERE clerk_user_id=$1 AND farm_id=$2',
+      [req.params.clerkUserId, req.farmId]
+    );
+    if (target[0]?.role === 'admin') {
+      const { rows: adminCount } = await pool.query(
+        "SELECT COUNT(*) FROM farm_users WHERE farm_id=$1 AND role='admin'",
+        [req.farmId]
+      );
+      if (parseInt(adminCount[0].count, 10) <= 1) {
+        return res.status(400).json({ error: 'Cannot remove the last admin on this farm' });
+      }
+    }
+  }
   const { rows } = await pool.query(
     'UPDATE farm_users SET role=$1 WHERE clerk_user_id=$2 AND farm_id=$3 RETURNING *',
     [role, req.params.clerkUserId, req.farmId]

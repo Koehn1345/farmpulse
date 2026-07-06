@@ -47,8 +47,12 @@ export default function Team() {
   };
 
   const handleRoleChange = async (clerkUserId, role) => {
-    await api.team.setRole(clerkUserId, role);
-    setTeamUsers(u => u.map(m => m.clerk_user_id === clerkUserId ? { ...m, role } : m));
+    try {
+      await api.team.setRole(clerkUserId, role);
+      setTeamUsers(u => u.map(m => m.clerk_user_id === clerkUserId ? { ...m, role } : m));
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
   const getRoleInfo = (role) => ROLES.find(r => r.value === role) || ROLES[1];
