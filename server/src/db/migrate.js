@@ -73,6 +73,8 @@ CREATE TABLE IF NOT EXISTS commodities (
   estimated_stack_tonnage NUMERIC(10,2),
   actual_stack_tonnage NUMERIC(10,2),
   test_pdf_url TEXT,
+  tarp TEXT,
+  notes TEXT,
   -- Grain fields
   type_crop TEXT,
   seed_details TEXT,

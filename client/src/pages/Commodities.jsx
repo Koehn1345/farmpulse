@@ -7,9 +7,10 @@ import { Plus, Pencil, Trash2, Wheat, Layers } from 'lucide-react';
 import { formatDate } from '../lib/format.js';
 
 const currentYear = new Date().getFullYear();
-const emptyForage = { type: 'Forage', field_id: '', year: String(currentYear), price_per_ton: '', stack_number: '', type_of_forage: '', cutting: '1st', bale_count: '', avg_bale_weight_lbs: '', actual_stack_tonnage: '' };
+const emptyForage = { type: 'Forage', field_id: '', year: String(currentYear), price_per_ton: '', stack_number: '', type_of_forage: '', cutting: '1st', tarp: 'No Tarp', bale_count: '', avg_bale_weight_lbs: '', actual_stack_tonnage: '', notes: '' };
 const emptyGrain = { type: 'Grain', field_id: '', year: String(currentYear), price_per_ton: '', type_crop: '', seed_details: '', estimated_total_tons: '', actual_tons: '' };
 const CUTTINGS = ['1st', '2nd', '3rd', '4th', '5th'];
+const TARP_OPTIONS = ['No Tarp', 'Top Tarp', 'Full Wrap'];
 const typeLabel = (t) => t === 'Forage' ? 'Stacks' : 'Grain';
 
 export default function Commodities() {
@@ -34,7 +35,7 @@ export default function Commodities() {
   const cropTypes = [...new Set(rows.filter(r => r.type === 'Grain' && r.type_crop).map(r => r.type_crop))].sort();
 
   const openAdd = () => { setForm(tab === 'Forage' ? emptyForage : emptyGrain); setAddingCropType(false); setModal('add'); };
-  const openEdit = (row) => { setForm({ ...row, year: String(row.year || currentYear), price_per_ton: String(row.price_per_ton || ''), bale_count: String(row.bale_count || ''), avg_bale_weight_lbs: String(row.avg_bale_weight_lbs || ''), actual_stack_tonnage: String(row.actual_stack_tonnage || ''), estimated_total_tons: String(row.estimated_total_tons || ''), actual_tons: String(row.actual_tons || '') }); setAddingCropType(false); setModal({ edit: row }); };
+  const openEdit = (row) => { setForm({ ...row, year: String(row.year || currentYear), price_per_ton: String(row.price_per_ton || ''), bale_count: String(row.bale_count || ''), avg_bale_weight_lbs: String(row.avg_bale_weight_lbs || ''), actual_stack_tonnage: String(row.actual_stack_tonnage || ''), estimated_total_tons: String(row.estimated_total_tons || ''), actual_tons: String(row.actual_tons || ''), tarp: row.tarp || 'No Tarp', notes: row.notes || '' }); setAddingCropType(false); setModal({ edit: row }); };
   const closeModal = () => setModal(null);
   const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
@@ -103,7 +104,7 @@ export default function Commodities() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-800">
-                {[...['Year', 'Stack #', 'Field', 'Commodity', 'Cutting', 'Bales', 'Est. Tons', 'Actual Tons'], ...(isAdmin ? ['$/Ton'] : [])].map(h => (
+                {[...['Year', 'Stack #', 'Field', 'Commodity', 'Cutting', 'Tarp', 'Bales', 'Est. Tons', 'Actual Tons'], ...(isAdmin ? ['$/Ton'] : [])].map(h => (
                   <th key={h} className="text-left px-5 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -116,13 +117,14 @@ export default function Commodities() {
                   <td className="px-5 py-3 text-slate-200">{fieldName(row.field_id)}</td>
                   <td className="px-5 py-3 text-slate-200">{row.type_of_forage}</td>
                   <td className="px-5 py-3"><span className="badge-forage">{row.cutting}</span></td>
+                  <td className="px-5 py-3 text-slate-400 text-xs">{row.tarp || 'No Tarp'}</td>
                   <td className="px-5 py-3 text-slate-300 font-mono">{row.bale_count?.toLocaleString() || '—'}</td>
                   <td className="px-5 py-3 text-slate-300 font-mono">{row.estimated_stack_tonnage ? parseFloat(row.estimated_stack_tonnage).toFixed(1) : '—'}</td>
                   <td className="px-5 py-3">{row.actual_stack_tonnage ? <span className="text-emerald-400 font-mono">{parseFloat(row.actual_stack_tonnage).toFixed(1)}</span> : <span className="text-slate-600 text-xs">Pending</span>}</td>
                   {isAdmin && <td className="px-5 py-3 font-mono text-slate-300">{row.price_per_ton ? `$${parseFloat(row.price_per_ton).toFixed(2)}` : '—'}</td>}
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={isAdmin ? 9 : 8} className="px-5 py-12 text-center text-slate-500">No stacks yet.</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={isAdmin ? 10 : 9} className="px-5 py-12 text-center text-slate-500">No stacks yet.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -168,11 +170,16 @@ export default function Commodities() {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div><label className="label">Commodity</label><input className="input" name="type_of_forage" value={form.type_of_forage} onChange={handleChange} placeholder="Alfalfa, Timothy…" /></div>
                 <div><label className="label">Cutting</label>
                   <select className="input" name="cutting" value={form.cutting} onChange={handleChange}>
                     {CUTTINGS.map(c => <option key={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div><label className="label">Tarp</label>
+                  <select className="input" name="tarp" value={form.tarp} onChange={handleChange}>
+                    {TARP_OPTIONS.map(t => <option key={t}>{t}</option>)}
                   </select>
                 </div>
               </div>
@@ -183,6 +190,10 @@ export default function Commodities() {
               <div className={`grid gap-4 ${isAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 <div><label className="label">Actual Stack Tonnage</label><input className="input" type="number" name="actual_stack_tonnage" value={form.actual_stack_tonnage} onChange={handleChange} placeholder="Auto-updates from loads" /></div>
                 {isAdmin && <div><label className="label">Price per Ton ($)</label><input className="input" type="number" name="price_per_ton" value={form.price_per_ton} onChange={handleChange} placeholder="180.00" step="0.01" /></div>}
+              </div>
+              <div>
+                <label className="label">Notes</label>
+                <textarea className="input" rows={3} name="notes" value={form.notes} onChange={handleChange} placeholder="Anything worth noting about this stack…" />
               </div>
             </div>
           ) : (
@@ -308,6 +319,12 @@ export default function Commodities() {
             </table>
             {isAdmin && !viewRow.price_per_ton && (
               <div className="text-xs text-slate-500 mt-3">Set a Price per Ton on this {viewRow.type === 'Forage' ? 'stack' : 'crop'} to calculate income automatically.</div>
+            )}
+            {viewRow.type === 'Forage' && (
+              <div className="mt-4 pt-4 border-t border-slate-800">
+                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Notes</div>
+                <div className="text-sm text-slate-300 whitespace-pre-wrap">{viewRow.notes || 'No notes.'}</div>
+              </div>
             )}
           </Modal>
         );
