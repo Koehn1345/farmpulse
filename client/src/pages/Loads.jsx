@@ -281,7 +281,7 @@ export default function Loads() {
             <table className="w-full text-sm whitespace-nowrap">
               <thead>
                 <tr className="border-b border-slate-800">
-                  {['Status', 'Date', 'Customer', 'Field', 'Type', 'BOL #', 'Shipper', 'Driver / Truck', 'Gross', 'Tare', 'Net (lbs)', 'Tons'].map(h => (
+                  {['Status', 'Date', 'Customer', 'Field', 'Type', 'Bales', 'BOL #', 'Shipper', 'Driver / Truck', 'Gross', 'Tare', 'Net (lbs)', 'Tons'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -298,12 +298,8 @@ export default function Loads() {
                     <td className="px-4 py-3 font-mono text-xs text-slate-400">{formatDate(row.date)}</td>
                     <td className="px-4 py-3 text-slate-200">{row.customer_name || '—'}</td>
                     <td className="px-4 py-3 text-slate-400">{row.field_name || '—'}</td>
-                    <td className="px-4 py-3">
-                      <span className={row.type === 'Forage' ? 'badge-forage' : 'badge-grain'}>{typeLabel(row.type)}</span>
-                      {row.type === 'Forage' && row.bale_count && (
-                        <span className="ml-1.5 text-xs text-slate-500">{row.bale_count} bales</span>
-                      )}
-                    </td>
+                    <td className="px-4 py-3 text-slate-300 text-xs">{typeLabel(row.type)}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-slate-400">{row.type === 'Forage' ? (row.bale_count ?? '—') : '—'}</td>
                     <td className="px-4 py-3 font-mono text-xs text-slate-300">{row.bol_number || '—'}</td>
                     <td className="px-4 py-3 text-slate-400 text-xs">{row.shipper || '—'}</td>
                     <td className="px-4 py-3 text-xs text-slate-400">
@@ -318,7 +314,7 @@ export default function Loads() {
                   </tr>
                 ))}
                 {sortedRows.length === 0 && (
-                  <tr><td colSpan={12} className="px-4 py-12 text-center text-slate-500">No loads logged yet.</td></tr>
+                  <tr><td colSpan={13} className="px-4 py-12 text-center text-slate-500">No loads logged yet.</td></tr>
                 )}
               </tbody>
             </table>
