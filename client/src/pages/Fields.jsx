@@ -25,10 +25,18 @@ export default function Fields() {
   const [yearFilter, setYearFilter] = useState('All');
   const [cropForm, setCropForm] = useState(null);
   const [savingCrop, setSavingCrop] = useState(false);
+  const [loadError, setLoadError] = useState(null);
 
   const load = async () => {
-    const [f, c, ch] = await Promise.all([api.fields.list(), api.commodities.list(), api.cropHistory.list()]);
-    setRows(f); setCommodities(c); setCropHistory(ch); setLoading(false);
+    setLoadError(null);
+    try {
+      const [f, c, ch] = await Promise.all([api.fields.list(), api.commodities.list(), api.cropHistory.list()]);
+      setRows(f); setCommodities(c); setCropHistory(ch);
+    } catch (err) {
+      setLoadError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(() => { load(); }, []);
 
@@ -96,6 +104,11 @@ export default function Fields() {
 
       {loading ? (
         <div className="text-slate-500 text-sm py-8 text-center">Loading…</div>
+      ) : loadError ? (
+        <div className="text-center py-8">
+          <div className="text-red-400 text-sm mb-2">Failed to load fields: {loadError}</div>
+          <button className="btn-secondary" onClick={() => { setLoading(true); load(); }}>Retry</button>
+        </div>
       ) : (
         <div className="card overflow-hidden p-0">
           <table className="w-full text-sm">
