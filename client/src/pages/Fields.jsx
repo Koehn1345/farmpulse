@@ -79,6 +79,8 @@ export default function Fields() {
       if (modal === 'add') await api.fields.create(payload);
       else await api.fields.update(modal.edit.id, payload);
       await load(); closeModal();
+    } catch (err) {
+      alert(`Failed to save: ${err.message}`);
     } finally { setSaving(false); }
   };
 
