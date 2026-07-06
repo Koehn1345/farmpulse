@@ -33,8 +33,8 @@ export default {
         }
       },
       fontFamily: {
-        display: ['"DM Serif Display"', 'Georgia', 'serif'],
-        body: ['"Inter"', 'system-ui', 'sans-serif'],
+        display: ['"Barlow"', 'system-ui', 'sans-serif'],
+        body: ['"Barlow"', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'monospace'],
       }
     },
