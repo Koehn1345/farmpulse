@@ -8,7 +8,7 @@ import { Plus, Pencil, Trash2, MapPin, Ruler } from 'lucide-react';
 
 const emptyCrop = { year: String(new Date().getFullYear()), crop: '', notes: '' };
 
-const empty = { field_name: '', acres: '', google_pin: '' };
+const empty = { field_name: '', acres: '', google_pin: '', ownership: 'Own', lease_payment: '' };
 const typeLabel = (t) => t === 'Forage' ? 'Stack' : 'Grain';
 
 export default function Fields() {
@@ -64,14 +64,17 @@ export default function Fields() {
   };
 
   const openAdd = () => { setForm(empty); setModal('add'); };
-  const openEdit = (row) => { setForm({ field_name: row.field_name, acres: String(row.acres || ''), google_pin: row.google_pin || '' }); setModal({ edit: row }); };
+  const openEdit = (row) => { setForm({ field_name: row.field_name, acres: String(row.acres || ''), google_pin: row.google_pin || '', ownership: row.ownership || 'Own', lease_payment: String(row.lease_payment || '') }); setModal({ edit: row }); };
   const closeModal = () => setModal(null);
   const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
   const handleSave = async () => {
     if (!form.field_name) return;
     setSaving(true);
-    const payload = { field_name: form.field_name, acres: parseFloat(form.acres) || null, google_pin: form.google_pin || null };
+    const payload = {
+      field_name: form.field_name, acres: parseFloat(form.acres) || null, google_pin: form.google_pin || null,
+      ownership: form.ownership, lease_payment: form.ownership === 'Lease' ? parseFloat(form.lease_payment) || null : null,
+    };
     try {
       if (modal === 'add') await api.fields.create(payload);
       else await api.fields.update(modal.edit.id, payload);
@@ -111,11 +114,14 @@ export default function Fields() {
         </div>
       ) : (
         <div className="card overflow-hidden p-0">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm whitespace-nowrap">
             <thead>
               <tr className="border-b border-slate-800 bg-slate-900/80">
                 <th className="text-left px-6 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">Field Name</th>
                 <th className="text-right px-6 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">Acres</th>
+                <th className="text-left px-6 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">Ownership</th>
+                <th className="text-right px-6 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">Lease Payment</th>
                 <th className="text-left px-6 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">Google Pin</th>
               </tr>
             </thead>
@@ -132,6 +138,8 @@ export default function Fields() {
                       {row.acres ? parseFloat(row.acres).toFixed(1) : '—'}
                     </span>
                   </td>
+                  <td className="px-6 py-4 text-slate-300 text-xs">{row.ownership || 'Own'}</td>
+                  <td className="px-6 py-4 text-right font-mono text-slate-300">{row.ownership === 'Lease' && row.lease_payment ? `$${parseFloat(row.lease_payment).toFixed(2)}` : '—'}</td>
                   <td className="px-6 py-4">
                     {row.google_pin
                       ? <a href={row.google_pin} target="_blank" rel="noreferrer" className="text-soil-400 hover:text-soil-300 text-xs underline underline-offset-2" onClick={(e) => e.stopPropagation()}>View on map</a>
@@ -141,10 +149,11 @@ export default function Fields() {
                 </tr>
               ))}
               {rows.length === 0 && (
-                <tr><td colSpan={3} className="px-6 py-12 text-center text-slate-500">No fields yet. Add your first one.</td></tr>
+                <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-500">No fields yet. Add your first one.</td></tr>
               )}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -162,6 +171,21 @@ export default function Fields() {
             <div>
               <label className="label">Google Maps Pin URL</label>
               <input className="input" name="google_pin" value={form.google_pin} onChange={handleChange} placeholder="https://maps.google.com/..." />
+            </div>
+            <div className={`grid gap-4 ${form.ownership === 'Lease' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              <div>
+                <label className="label">Ownership</label>
+                <select className="input" name="ownership" value={form.ownership} onChange={handleChange}>
+                  <option value="Own">Own</option>
+                  <option value="Lease">Lease</option>
+                </select>
+              </div>
+              {form.ownership === 'Lease' && (
+                <div>
+                  <label className="label">Lease Payment ($)</label>
+                  <input className="input" type="number" name="lease_payment" value={form.lease_payment} onChange={handleChange} placeholder="5000.00" step="0.01" />
+                </div>
+              )}
             </div>
             <div className="flex gap-3 pt-2">
               <button className="btn-primary flex-1 justify-center" onClick={handleSave} disabled={saving}>
@@ -195,6 +219,12 @@ export default function Fields() {
                     <MapPin size={13} /> No map pin set
                   </div>
                 )}
+                <div className="text-slate-300">
+                  {viewField.ownership || 'Own'}
+                  {viewField.ownership === 'Lease' && viewField.lease_payment && (
+                    <span className="text-slate-500"> — ${parseFloat(viewField.lease_payment).toFixed(2)}</span>
+                  )}
+                </div>
               </div>
               {isAdmin && (
                 <div className="flex gap-2">

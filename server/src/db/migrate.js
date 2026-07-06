@@ -39,6 +39,8 @@ CREATE TABLE IF NOT EXISTS fields (
   field_name TEXT NOT NULL,
   acres NUMERIC(10,2),
   google_pin TEXT,
+  ownership TEXT,
+  lease_payment NUMERIC(10,2),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   deleted_at TIMESTAMPTZ
 );
