@@ -79,6 +79,14 @@ export const requireAdmin = (req, res, next) => {
   next();
 };
 
+// Role gate middleware - allow any of the listed roles
+export const requireRole = (...roles) => (req, res, next) => {
+  if (!roles.includes(req.userRole)) {
+    return res.status(403).json({ error: 'Insufficient permissions' });
+  }
+  next();
+};
+
 // Trucker middleware - can see loads across linked farms
 export const resolveTruckerFarms = async (req, res, next) => {
   try {

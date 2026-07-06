@@ -5,9 +5,16 @@ import PageHeader from '../components/PageHeader.jsx';
 import { Shield, User, Truck } from 'lucide-react';
 
 const ROLES = [
-  { value: 'admin', label: 'Admin', icon: Shield, desc: 'Full access including financials', color: 'text-soil-300' },
-  { value: 'employee', label: 'Employee', icon: User, desc: 'Log loads only', color: 'text-blue-300' },
-  { value: 'trucker', label: 'Trucker', icon: Truck, desc: 'View loads across linked farms', color: 'text-emerald-300' },
+  { value: 'admin', label: 'Admin', icon: Shield, desc: ['Full access'], color: 'text-soil-300' },
+  {
+    value: 'employee', label: 'Employee', icon: User, color: 'text-blue-300',
+    desc: [
+      'View fields and commodities (no financials)',
+      'Add & edit commodities',
+      'Add & edit loads',
+    ],
+  },
+  { value: 'trucker', label: 'Trucker', icon: Truck, desc: ['View, edit & add loads'], color: 'text-emerald-300' },
 ];
 
 export default function Team() {
@@ -77,10 +84,12 @@ export default function Team() {
       <div className="grid grid-cols-3 gap-3 mb-6">
         {ROLES.map(({ value, label, icon: Icon, desc, color }) => (
           <div key={value} className="card-sm flex items-start gap-3">
-            <Icon size={16} className={color} />
+            <Icon size={16} className={`${color} mt-0.5 shrink-0`} />
             <div>
               <div className={`text-sm font-medium ${color}`}>{label}</div>
-              <div className="text-xs text-slate-500 mt-0.5">{desc}</div>
+              <ul className="text-xs text-slate-500 mt-0.5 space-y-0.5">
+                {desc.map(line => <li key={line}>{line}</li>)}
+              </ul>
             </div>
           </div>
         ))}
@@ -126,7 +135,7 @@ export default function Team() {
                     <td className="px-5 py-4">
                       <span className={`flex items-center gap-1.5 text-xs ${roleInfo.color}`}>
                         <RoleIcon size={12} />
-                        {roleInfo.desc}
+                        {roleInfo.desc.join(' · ')}
                       </span>
                     </td>
                   </tr>

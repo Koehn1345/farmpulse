@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 import Modal from '../components/Modal.jsx';
 import PageHeader from '../components/PageHeader.jsx';
+import { useFarm } from '../context/FarmContext.jsx';
 import { Plus, Pencil, Trash2, MapPin, Ruler } from 'lucide-react';
 
 const empty = { field_name: '', acres: '', google_pin: '' };
 const typeLabel = (t) => t === 'Forage' ? 'Stack' : 'Grain';
 
 export default function Fields() {
+  const { isAdmin } = useFarm();
   const [rows, setRows] = useState([]);
   const [commodities, setCommodities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -54,9 +56,11 @@ export default function Fields() {
         title="Fields"
         subtitle={`${rows.length} fields · ${totalAcres.toFixed(1)} total acres`}
         action={
-          <button className="btn-primary" onClick={openAdd}>
-            <Plus size={15} /> Add Field
-          </button>
+          isAdmin && (
+            <button className="btn-primary" onClick={openAdd}>
+              <Plus size={15} /> Add Field
+            </button>
+          )
         }
       />
 
@@ -148,10 +152,12 @@ export default function Fields() {
                   </div>
                 )}
               </div>
-              <div className="flex gap-2">
-                <button className="btn-secondary !px-2 !py-1" onClick={() => { openEdit(viewField); setViewField(null); }}><Pencil size={13} /></button>
-                <button className="btn-danger" onClick={() => handleDelete(viewField.id)}><Trash2 size={13} /></button>
-              </div>
+              {isAdmin && (
+                <div className="flex gap-2">
+                  <button className="btn-secondary !px-2 !py-1" onClick={() => { openEdit(viewField); setViewField(null); }}><Pencil size={13} /></button>
+                  <button className="btn-danger" onClick={() => handleDelete(viewField.id)}><Trash2 size={13} /></button>
+                </div>
+              )}
             </div>
             <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Stacks & Grain</div>
             {years.length > 0 && (

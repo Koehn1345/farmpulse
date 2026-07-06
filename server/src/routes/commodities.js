@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import pool from '../db/pool.js';
-import { requireAdmin } from '../middleware/auth.js';
+import { requireAdmin, requireRole } from '../middleware/auth.js';
 import { syncIncomeForCommodity } from '../db/incomeSync.js';
 
 const router = Router();
@@ -11,14 +11,16 @@ router.get('/', async (req, res) => {
       'SELECT * FROM commodities WHERE farm_id = $1 AND deleted_at IS NULL ORDER BY created_at DESC',
       [req.farmId]
     );
-    res.json(rows);
+    // Financials are admin-only - strip price_per_ton for other roles
+    const sanitized = req.userRole === 'admin' ? rows : rows.map(({ price_per_ton, ...rest }) => rest);
+    res.json(sanitized);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
 
-router.post('/', requireAdmin, async (req, res) => {
+router.post('/', requireRole('admin', 'employee'), async (req, res) => {
   try {
     const b = req.body;
     const { rows } = await pool.query(
@@ -46,7 +48,7 @@ router.post('/', requireAdmin, async (req, res) => {
   }
 });
 
-router.put('/:id', requireAdmin, async (req, res) => {
+router.put('/:id', requireRole('admin', 'employee'), async (req, res) => {
   try {
     const b = req.body;
     const { rows } = await pool.query(

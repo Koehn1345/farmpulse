@@ -17,7 +17,6 @@ import { setTokenGetter } from './lib/api.js';
 import { FarmProvider, useFarm } from './context/FarmContext.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Loads from './pages/Loads.jsx';
-import EmployeeLoads from './pages/EmployeeLoads.jsx';
 import Commodities from './pages/Commodities.jsx';
 import Customers from './pages/Customers.jsx';
 import Income from './pages/Income.jsx';
@@ -82,12 +81,18 @@ const adminNav = [
 ];
 
 const employeeNav = [
-  { to: '/', label: 'Log Load', icon: Truck, exact: true },
+  { to: '/fields', label: 'Fields', icon: MapPin },
+  { to: '/commodities', label: 'Commodities', icon: Wheat },
+  { to: '/loads', label: 'Loads', icon: Truck, exact: true },
+];
+
+const truckerNav = [
+  { to: '/', label: 'Loads', icon: Truck, exact: true },
 ];
 
 function Sidebar({ open, onClose }) {
-  const { isAdmin, farm, role } = useFarm();
-  const nav = isAdmin ? adminNav : employeeNav;
+  const { farm, role } = useFarm();
+  const nav = role === 'admin' ? adminNav : role === 'employee' ? employeeNav : truckerNav;
   const { organization } = useOrganization();
 
   return (
@@ -126,7 +131,7 @@ function Sidebar({ open, onClose }) {
 
         <div className="px-4 py-4 border-t border-slate-800 space-y-1">
           <div className="px-3 py-1.5 rounded-lg bg-slate-800/50 text-xs text-slate-400 flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${isAdmin ? 'bg-soil-400' : 'bg-blue-400'}`} />
+            <div className={`w-2 h-2 rounded-full ${role === 'admin' ? 'bg-soil-400' : 'bg-blue-400'}`} />
             {role === 'admin' ? 'Admin' : role === 'trucker' ? 'Trucker' : 'Employee'}
           </div>
         </div>
@@ -136,7 +141,7 @@ function Sidebar({ open, onClose }) {
 }
 
 function AppShell() {
-  const { isAdmin, loading } = useFarm();
+  const { role, loading } = useFarm();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (loading) return <LoadingScreen />;
@@ -153,7 +158,7 @@ function AppShell() {
         </header>
         <main className="flex-1 overflow-y-auto">
           <Routes>
-            {isAdmin ? (
+            {role === 'admin' ? (
               <>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/loads" element={<Loads />} />
@@ -164,9 +169,17 @@ function AppShell() {
                 <Route path="/fields" element={<Fields />} />
                 <Route path="/team" element={<Team />} />
               </>
+            ) : role === 'employee' ? (
+              <>
+                <Route path="/" element={<Navigate to="/loads" replace />} />
+                <Route path="/fields" element={<Fields />} />
+                <Route path="/commodities" element={<Commodities />} />
+                <Route path="/loads" element={<Loads />} />
+                <Route path="*" element={<Navigate to="/loads" replace />} />
+              </>
             ) : (
               <>
-                <Route path="/" element={<EmployeeLoads />} />
+                <Route path="/" element={<Loads />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </>
             )}

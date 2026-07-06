@@ -77,8 +77,8 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Edit - admin only
-router.put('/:id', requireAdmin, async (req, res) => {
+// Edit - any authenticated user
+router.put('/:id', async (req, res) => {
   try {
     const b = req.body;
     const { rows } = await pool.query(

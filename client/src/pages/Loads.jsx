@@ -112,7 +112,9 @@ function QuickAddCommodity({ type, fields, onSave, onCancel }) {
 }
 
 export default function Loads() {
-  const { farm } = useFarm();
+  const { farm, role } = useFarm();
+  const isAdmin = role === 'admin';
+  const canManageSupportingRecords = role !== 'trucker';
   const [rows, setRows] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [fields, setFields] = useState([]);
@@ -343,7 +345,7 @@ export default function Loads() {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="label !mb-0">Customer *</label>
-                {quickAdd !== 'customer' && (
+                {quickAdd !== 'customer' && canManageSupportingRecords && (
                   <button className="text-xs text-soil-400 hover:text-soil-300" onClick={() => setQuickAdd('customer')}>
                     + New Customer
                   </button>
@@ -362,7 +364,7 @@ export default function Loads() {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="label !mb-0">Field</label>
-                {quickAdd !== 'field' && (
+                {quickAdd !== 'field' && isAdmin && (
                   <button className="text-xs text-soil-400 hover:text-soil-300" onClick={() => setQuickAdd('field')}>
                     + New Field
                   </button>
@@ -381,7 +383,7 @@ export default function Loads() {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="label !mb-0">Commodity</label>
-                {quickAdd !== 'commodity' && (
+                {quickAdd !== 'commodity' && canManageSupportingRecords && (
                   <button className="text-xs text-soil-400 hover:text-soil-300" onClick={() => setQuickAdd('commodity')}>
                     + New Commodity
                   </button>
@@ -539,9 +541,11 @@ export default function Loads() {
               <button className="btn-primary flex-1 justify-center" onClick={() => { openEdit(viewRow); setViewRow(null); }}>
                 <Pencil size={13} /> Edit
               </button>
-              <button className="btn-danger flex-1 justify-center" onClick={() => handleDelete(viewRow.id)}>
-                <Trash2 size={13} /> Delete
-              </button>
+              {isAdmin && (
+                <button className="btn-danger flex-1 justify-center" onClick={() => handleDelete(viewRow.id)}>
+                  <Trash2 size={13} /> Delete
+                </button>
+              )}
               <button className="btn-secondary" onClick={() => setViewRow(null)}>Close</button>
             </div>
           </div>

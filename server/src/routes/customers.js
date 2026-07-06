@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import pool from '../db/pool.js';
-import { requireAdmin } from '../middleware/auth.js';
+import { requireAdmin, requireRole } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
   res.json(rows);
 });
 
-router.post('/', requireAdmin, async (req, res) => {
+router.post('/', requireRole('admin', 'employee'), async (req, res) => {
   const { company_name, contact_name, phone, email, mailing_address } = req.body;
   const { rows } = await pool.query(
     `INSERT INTO customers (farm_id, company_name, contact_name, phone, email, mailing_address)
