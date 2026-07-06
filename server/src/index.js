@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { clerk, requireAuth, requireFarm } from './middleware/auth.js';
 import customerRoutes from './routes/customers.js';
 import fieldRoutes from './routes/fields.js';
+import cropHistoryRoutes from './routes/cropHistory.js';
 import commodityRoutes from './routes/commodities.js';
 import loadRoutes from './routes/loads.js';
 import incomeRoutes from './routes/income.js';
@@ -28,6 +29,7 @@ api.use(requireAuth, requireFarm);
 
 api.use('/customers', customerRoutes);
 api.use('/fields', fieldRoutes);
+api.use('/crop-history', cropHistoryRoutes);
 api.use('/commodities', commodityRoutes);
 api.use('/loads', loadRoutes);
 api.use('/income', incomeRoutes);

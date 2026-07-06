@@ -49,6 +49,12 @@ export const api = {
     update: (id, b) => req('PUT', `/fields/${id}`, b),
     delete: (id) => req('DELETE', `/fields/${id}`),
   },
+  cropHistory: {
+    list: () => req('GET', '/crop-history'),
+    create: (b) => req('POST', '/crop-history', b),
+    update: (id, b) => req('PUT', `/crop-history/${id}`, b),
+    delete: (id) => req('DELETE', `/crop-history/${id}`),
+  },
   commodities: {
     list: () => req('GET', '/commodities'),
     create: (b) => req('POST', '/commodities', b),

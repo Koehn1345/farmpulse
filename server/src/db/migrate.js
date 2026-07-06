@@ -138,8 +138,21 @@ CREATE TABLE IF NOT EXISTS expenses (
   deleted_at TIMESTAMPTZ
 );
 
+-- Crop history (lightweight year/crop log per field, separate from Commodities)
+CREATE TABLE IF NOT EXISTS crop_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  farm_id UUID NOT NULL REFERENCES farms(id) ON DELETE CASCADE,
+  field_id UUID NOT NULL REFERENCES fields(id) ON DELETE CASCADE,
+  year INT NOT NULL,
+  crop TEXT NOT NULL,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
+);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_fields_farm ON fields(farm_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_crop_history_field ON crop_history(field_id) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_customers_farm ON customers(farm_id) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_commodities_farm ON commodities(farm_id) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_loads_farm ON loads(farm_id) WHERE deleted_at IS NULL;

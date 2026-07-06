@@ -6,6 +6,8 @@ import PageHeader from '../components/PageHeader.jsx';
 import { useFarm } from '../context/FarmContext.jsx';
 import { Plus, Pencil, Trash2, MapPin, Ruler } from 'lucide-react';
 
+const emptyCrop = { year: String(new Date().getFullYear()), crop: '', notes: '' };
+
 const empty = { field_name: '', acres: '', google_pin: '' };
 const typeLabel = (t) => t === 'Forage' ? 'Stack' : 'Grain';
 
@@ -14,18 +16,44 @@ export default function Fields() {
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [commodities, setCommodities] = useState([]);
+  const [cropHistory, setCropHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
   const [viewField, setViewField] = useState(null);
   const [yearFilter, setYearFilter] = useState('All');
+  const [cropForm, setCropForm] = useState(null);
+  const [savingCrop, setSavingCrop] = useState(false);
 
   const load = async () => {
-    const [f, c] = await Promise.all([api.fields.list(), api.commodities.list()]);
-    setRows(f); setCommodities(c); setLoading(false);
+    const [f, c, ch] = await Promise.all([api.fields.list(), api.commodities.list(), api.cropHistory.list()]);
+    setRows(f); setCommodities(c); setCropHistory(ch); setLoading(false);
   };
   useEffect(() => { load(); }, []);
+
+  const openAddCrop = () => setCropForm(emptyCrop);
+  const openEditCrop = (entry) => setCropForm({ id: entry.id, year: String(entry.year), crop: entry.crop, notes: entry.notes || '' });
+  const closeCropForm = () => setCropForm(null);
+  const handleCropChange = (e) => setCropForm(f => ({ ...f, [e.target.name]: e.target.value }));
+
+  const saveCrop = async () => {
+    if (!cropForm.year || !cropForm.crop) return;
+    setSavingCrop(true);
+    const payload = { field_id: viewField.id, year: parseInt(cropForm.year), crop: cropForm.crop, notes: cropForm.notes || null };
+    try {
+      if (cropForm.id) await api.cropHistory.update(cropForm.id, payload);
+      else await api.cropHistory.create(payload);
+      setCropHistory(await api.cropHistory.list());
+      closeCropForm();
+    } finally { setSavingCrop(false); }
+  };
+
+  const deleteCrop = async (id) => {
+    if (!confirm('Delete this crop history entry?')) return;
+    await api.cropHistory.delete(id);
+    setCropHistory(h => h.filter(x => x.id !== id));
+  };
 
   const openAdd = () => { setForm(empty); setModal('add'); };
   const openEdit = (row) => { setForm({ field_name: row.field_name, acres: String(row.acres || ''), google_pin: row.google_pin || '' }); setModal({ edit: row }); };
@@ -80,7 +108,7 @@ export default function Fields() {
             </thead>
             <tbody>
               {rows.map(row => (
-                <tr key={row.id} className="table-row cursor-pointer" onClick={() => { setViewField(row); setYearFilter('All'); }}>
+                <tr key={row.id} className="table-row cursor-pointer" onClick={() => { setViewField(row); setYearFilter('All'); setCropForm(null); }}>
                   <td className="px-6 py-4 font-medium text-slate-100 flex items-center gap-2">
                     <MapPin size={13} className="text-soil-400 shrink-0" />
                     {row.field_name}
@@ -136,6 +164,7 @@ export default function Fields() {
         const fieldCommodities = commodities.filter(c => c.field_id === viewField.id);
         const years = [...new Set(fieldCommodities.map(c => c.year))].sort((a, b) => b - a);
         const filtered = yearFilter === 'All' ? fieldCommodities : fieldCommodities.filter(c => c.year === yearFilter);
+        const fieldCropHistory = cropHistory.filter(h => h.field_id === viewField.id).sort((a, b) => b.year - a.year);
         return (
           <Modal title={viewField.field_name} onClose={() => setViewField(null)} wide>
             <div className="flex items-start justify-between mb-5 pb-4 border-b border-slate-800">
@@ -161,6 +190,52 @@ export default function Fields() {
                 </div>
               )}
             </div>
+
+            <div className="mb-5 pb-4 border-b border-slate-800">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Crop History</div>
+                {isAdmin && !cropForm && (
+                  <button className="text-xs text-soil-400 hover:text-soil-300" onClick={openAddCrop}>+ Add Crop</button>
+                )}
+              </div>
+
+              {cropForm && (
+                <div className="mb-3 p-3 bg-slate-800 rounded-lg border border-slate-700 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <input className="input" type="number" name="year" value={cropForm.year} onChange={handleCropChange} placeholder="2024" />
+                    <input className="input" name="crop" value={cropForm.crop} onChange={handleCropChange} placeholder="Corn, Soybeans…" autoFocus />
+                  </div>
+                  <input className="input" name="notes" value={cropForm.notes} onChange={handleCropChange} placeholder="Notes (optional)" />
+                  <div className="flex gap-2">
+                    <button className="btn-primary !py-1 text-xs" onClick={saveCrop} disabled={savingCrop}>{savingCrop ? 'Saving…' : 'Save'}</button>
+                    <button className="btn-secondary !py-1 text-xs" onClick={closeCropForm}>Cancel</button>
+                  </div>
+                </div>
+              )}
+
+              {fieldCropHistory.length > 0 ? (
+                <div className="space-y-1.5">
+                  {fieldCropHistory.map(entry => (
+                    <div key={entry.id} className="flex items-center justify-between text-sm">
+                      <div>
+                        <span className="font-mono text-xs text-slate-500 mr-2">{entry.year}</span>
+                        <span className="text-slate-200">{entry.crop}</span>
+                        {entry.notes && <span className="text-slate-500 text-xs ml-2">— {entry.notes}</span>}
+                      </div>
+                      {isAdmin && (
+                        <div className="flex gap-1">
+                          <button className="text-slate-500 hover:text-slate-300" onClick={() => openEditCrop(entry)}><Pencil size={12} /></button>
+                          <button className="text-slate-500 hover:text-red-400" onClick={() => deleteCrop(entry.id)}><Trash2 size={12} /></button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                !cropForm && <div className="text-xs text-slate-500">No crop history logged for this field.</div>
+              )}
+            </div>
+
             <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Stacks & Grain</div>
             {years.length > 0 && (
               <div className="flex items-center gap-2 mb-4">
