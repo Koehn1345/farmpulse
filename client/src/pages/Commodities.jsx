@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import Modal from '../components/Modal.jsx';
 import PageHeader from '../components/PageHeader.jsx';
@@ -15,6 +16,8 @@ const typeLabel = (t) => t === 'Forage' ? 'Stacks' : 'Grain';
 
 export default function Commodities() {
   const { isAdmin } = useFarm();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [fields, setFields] = useState([]);
   const [loads, setLoads] = useState([]);
@@ -31,6 +34,18 @@ export default function Commodities() {
     setRows(c); setFields(f); setLoads(l); setLoading(false);
   };
   useEffect(() => { load(); }, []);
+
+  // Deep-link support: opened from a Field's "Stacks & Grain" list
+  useEffect(() => {
+    const openId = location.state?.openCommodityId;
+    if (!openId || rows.length === 0) return;
+    const match = rows.find(r => r.id === openId);
+    if (match) {
+      setTab(match.type);
+      setViewRow(match);
+    }
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [rows, location.state]);
 
   const cropTypes = [...new Set(rows.filter(r => r.type === 'Grain' && r.type_crop).map(r => r.type_crop))].sort();
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import Modal from '../components/Modal.jsx';
 import PageHeader from '../components/PageHeader.jsx';
@@ -10,6 +11,7 @@ const typeLabel = (t) => t === 'Forage' ? 'Stack' : 'Grain';
 
 export default function Fields() {
   const { isAdmin } = useFarm();
+  const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [commodities, setCommodities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -197,7 +199,7 @@ export default function Fields() {
                     ? (c.actual_stack_tonnage ?? c.estimated_stack_tonnage)
                     : (c.actual_tons ?? c.estimated_total_tons);
                   return (
-                    <tr key={c.id} className="table-row">
+                    <tr key={c.id} className="table-row cursor-pointer" onClick={() => navigate('/commodities', { state: { openCommodityId: c.id } })}>
                       <td className="px-3 py-2 font-mono text-xs text-slate-400">{c.year || '—'}</td>
                       <td className="px-3 py-2"><span className={c.type === 'Forage' ? 'badge-forage' : 'badge-grain'}>{typeLabel(c.type)}</span></td>
                       <td className="px-3 py-2 text-slate-200">{c.type === 'Forage' ? (c.stack_number || c.type_of_forage) : c.type_crop}</td>
