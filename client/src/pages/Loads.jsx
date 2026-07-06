@@ -345,7 +345,7 @@ export default function Loads() {
                     <td className="px-4 py-3">
                       {!row.net_weight && (
                         <button
-                          className="text-slate-500 hover:text-green-400 transition-colors"
+                          className="text-green-500 hover:text-green-400 transition-colors"
                           title="Complete this load"
                           onClick={(e) => { e.stopPropagation(); openEdit(row); }}
                         >
