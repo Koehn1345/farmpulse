@@ -268,21 +268,45 @@ export default function Commodities() {
             wide
           >
             <div className="flex items-start justify-between mb-5 pb-4 border-b border-slate-800">
-              <div className="space-y-1.5 text-sm text-slate-300">
-                <div className="flex items-center gap-2">
-                  <span className={viewRow.type === 'Forage' ? 'badge-forage' : 'badge-grain'}>{typeLabel(viewRow.type)}</span>
-                  <span className="text-slate-400">{viewRow.year}</span>
-                </div>
-                <div>{fieldName(viewRow.field_id)}</div>
-                {isAdmin && (
-                  <div className="text-xs text-slate-400">{viewRow.price_per_ton ? `$${parseFloat(viewRow.price_per_ton).toFixed(2)}/ton` : 'No price set'}</div>
-                )}
+              <div className="flex items-center gap-2 text-sm text-slate-300">
+                <span className={viewRow.type === 'Forage' ? 'badge-forage' : 'badge-grain'}>{typeLabel(viewRow.type)}</span>
+                <span className="text-slate-400">{viewRow.year}</span>
               </div>
               <div className="flex gap-2">
                 <button className="btn-secondary !px-2 !py-1" onClick={() => { openEdit(viewRow); setViewRow(null); }}><Pencil size={13} /></button>
                 {isAdmin && <button className="btn-danger" onClick={() => handleDelete(viewRow.id)}><Trash2 size={13} /></button>}
               </div>
             </div>
+
+            {viewRow.type === 'Forage' ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-5 pb-4 border-b border-slate-800">
+                <div><div className="label">Field</div><div className="text-slate-100">{fieldName(viewRow.field_id)}</div></div>
+                <div><div className="label">Stack #</div><div className="text-slate-100">{viewRow.stack_number || '—'}</div></div>
+                <div><div className="label">Commodity</div><div className="text-slate-100">{viewRow.type_of_forage || '—'}</div></div>
+                <div><div className="label">Cutting</div><div className="text-slate-100">{viewRow.cutting || '—'}</div></div>
+                <div><div className="label">Tarp</div><div className="text-slate-100">{viewRow.tarp || 'No Tarp'}</div></div>
+                <div><div className="label">Bale Count</div><div className="font-mono text-slate-100">{viewRow.bale_count?.toLocaleString() ?? '—'}</div></div>
+                <div><div className="label">Bales Left</div><div className="font-mono text-slate-100">{viewRow.bale_count != null ? balesLeft(viewRow).toLocaleString() : '—'}</div></div>
+                <div><div className="label">Est. Tons</div><div className="font-mono text-slate-100">{viewRow.estimated_stack_tonnage ? parseFloat(viewRow.estimated_stack_tonnage).toFixed(1) : '—'}</div></div>
+                <div><div className="label">Actual Tons</div><div className="font-mono text-slate-100">{viewRow.actual_stack_tonnage ? parseFloat(viewRow.actual_stack_tonnage).toFixed(1) : '—'}</div></div>
+                {isAdmin && <div><div className="label">Price/Ton</div><div className="font-mono text-slate-100">{viewRow.price_per_ton ? `$${parseFloat(viewRow.price_per_ton).toFixed(2)}` : '—'}</div></div>}
+              </div>
+            ) : (
+              <div className="space-y-1.5 text-sm text-slate-300 mb-5 pb-4 border-b border-slate-800">
+                <div>{fieldName(viewRow.field_id)}</div>
+                {isAdmin && (
+                  <div className="text-xs text-slate-400">{viewRow.price_per_ton ? `$${parseFloat(viewRow.price_per_ton).toFixed(2)}/ton` : 'No price set'}</div>
+                )}
+              </div>
+            )}
+
+            {viewRow.type === 'Forage' && (
+              <div className="mb-5">
+                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Notes</div>
+                <div className="text-sm text-slate-300 whitespace-pre-wrap">{viewRow.notes || 'No notes.'}</div>
+              </div>
+            )}
+
             <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Loads</div>
             <table className="w-full text-sm">
               <thead>
@@ -326,12 +350,6 @@ export default function Commodities() {
             </table>
             {isAdmin && !viewRow.price_per_ton && (
               <div className="text-xs text-slate-500 mt-3">Set a Price per Ton on this {viewRow.type === 'Forage' ? 'stack' : 'crop'} to calculate income automatically.</div>
-            )}
-            {viewRow.type === 'Forage' && (
-              <div className="mt-4 pt-4 border-t border-slate-800">
-                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Notes</div>
-                <div className="text-sm text-slate-300 whitespace-pre-wrap">{viewRow.notes || 'No notes.'}</div>
-              </div>
             )}
           </Modal>
         );
