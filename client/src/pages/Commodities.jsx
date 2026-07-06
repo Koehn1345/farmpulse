@@ -74,6 +74,8 @@ export default function Commodities() {
   const filtered = rows.filter(r => r.type === tab);
   const balesHauled = (id) => loads.filter(l => l.commodity_id === id).reduce((s, l) => s + (l.bale_count || 0), 0);
   const balesLeft = (row) => row.bale_count != null ? row.bale_count - balesHauled(row.id) : null;
+  const tonsHauled = (id) => loads.filter(l => l.commodity_id === id).reduce((s, l) => s + (l.net_weight ? l.net_weight / 2000 : 0), 0);
+  const tonsLeft = (row) => row.estimated_total_tons != null ? row.estimated_total_tons - tonsHauled(row.id) : null;
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
@@ -139,7 +141,7 @@ export default function Commodities() {
             <table className="w-full text-sm whitespace-nowrap">
               <thead>
                 <tr className="border-b border-slate-800">
-                  {[...['Year', 'Crop', 'Field', 'Seed', 'Est. Tons', 'Actual Tons'], ...(isAdmin ? ['$/Ton'] : [])].map(h => (
+                  {[...['Year', 'Crop', 'Field', 'Seed', 'Est. Tons', 'Tons Left', 'Actual Tons'], ...(isAdmin ? ['$/Ton'] : [])].map(h => (
                     <th key={h} className="text-left px-5 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -152,11 +154,12 @@ export default function Commodities() {
                     <td className="px-5 py-3 text-slate-200">{fieldName(row.field_id)}</td>
                     <td className="px-5 py-3 text-slate-400 text-xs">{row.seed_details || '—'}</td>
                     <td className="px-5 py-3 font-mono text-slate-300">{row.estimated_total_tons ? parseFloat(row.estimated_total_tons).toFixed(1) : '—'}</td>
+                    <td className="px-5 py-3 font-mono">{row.estimated_total_tons != null ? tonsLeft(row).toFixed(1) : '—'}</td>
                     <td className="px-5 py-3">{row.actual_tons ? <span className="text-amber-400 font-mono">{parseFloat(row.actual_tons).toFixed(1)}</span> : <span className="text-slate-600 text-xs">Pending</span>}</td>
                     {isAdmin && <td className="px-5 py-3 font-mono text-slate-300">{row.price_per_ton ? `$${parseFloat(row.price_per_ton).toFixed(2)}` : '—'}</td>}
                   </tr>
                 ))}
-                {filtered.length === 0 && <tr><td colSpan={isAdmin ? 7 : 6} className="px-5 py-12 text-center text-slate-500">No grain fields yet.</td></tr>}
+                {filtered.length === 0 && <tr><td colSpan={isAdmin ? 8 : 7} className="px-5 py-12 text-center text-slate-500">No grain fields yet.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -292,11 +295,14 @@ export default function Commodities() {
                 {isAdmin && <div><div className="label">Price/Ton</div><div className="font-mono text-slate-100">{viewRow.price_per_ton ? `$${parseFloat(viewRow.price_per_ton).toFixed(2)}` : '—'}</div></div>}
               </div>
             ) : (
-              <div className="space-y-1.5 text-sm text-slate-300 mb-5 pb-4 border-b border-slate-800">
-                <div>{fieldName(viewRow.field_id)}</div>
-                {isAdmin && (
-                  <div className="text-xs text-slate-400">{viewRow.price_per_ton ? `$${parseFloat(viewRow.price_per_ton).toFixed(2)}/ton` : 'No price set'}</div>
-                )}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-5 pb-4 border-b border-slate-800">
+                <div><div className="label">Field</div><div className="text-slate-100">{fieldName(viewRow.field_id)}</div></div>
+                <div><div className="label">Crop Type</div><div className="text-slate-100">{viewRow.type_crop || '—'}</div></div>
+                <div><div className="label">Seed Variety</div><div className="text-slate-100">{viewRow.seed_details || '—'}</div></div>
+                <div><div className="label">Est. Tons</div><div className="font-mono text-slate-100">{viewRow.estimated_total_tons ? parseFloat(viewRow.estimated_total_tons).toFixed(1) : '—'}</div></div>
+                <div><div className="label">Tons Left</div><div className="font-mono text-slate-100">{viewRow.estimated_total_tons != null ? tonsLeft(viewRow).toFixed(1) : '—'}</div></div>
+                <div><div className="label">Actual Tons</div><div className="font-mono text-slate-100">{viewRow.actual_tons ? parseFloat(viewRow.actual_tons).toFixed(1) : '—'}</div></div>
+                {isAdmin && <div><div className="label">Price/Ton</div><div className="font-mono text-slate-100">{viewRow.price_per_ton ? `$${parseFloat(viewRow.price_per_ton).toFixed(2)}` : '—'}</div></div>}
               </div>
             )}
 
