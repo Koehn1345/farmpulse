@@ -9,7 +9,6 @@ import { formatDate } from '../lib/format.js';
 const currentYear = new Date().getFullYear();
 const emptyForage = { type: 'Forage', field_id: '', year: String(currentYear), price_per_ton: '', stack_number: '', type_of_forage: '', cutting: '1st', tarp: 'No Tarp', bale_count: '', avg_bale_weight_lbs: '', actual_stack_tonnage: '', notes: '' };
 const emptyGrain = { type: 'Grain', field_id: '', year: String(currentYear), price_per_ton: '', type_crop: '', seed_details: '', estimated_total_tons: '', actual_tons: '' };
-const CUTTINGS = ['1st', '2nd', '3rd', '4th', '5th'];
 const TARP_OPTIONS = ['No Tarp', 'Top Tarp', 'Full Wrap'];
 const typeLabel = (t) => t === 'Forage' ? 'Stacks' : 'Grain';
 
@@ -172,11 +171,7 @@ export default function Commodities() {
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div><label className="label">Commodity</label><input className="input" name="type_of_forage" value={form.type_of_forage} onChange={handleChange} placeholder="Alfalfa, Timothy…" /></div>
-                <div><label className="label">Cutting</label>
-                  <select className="input" name="cutting" value={form.cutting} onChange={handleChange}>
-                    {CUTTINGS.map(c => <option key={c}>{c}</option>)}
-                  </select>
-                </div>
+                <div><label className="label">Cutting</label><input className="input" name="cutting" value={form.cutting} onChange={handleChange} placeholder="1st" /></div>
                 <div><label className="label">Tarp</label>
                   <select className="input" name="tarp" value={form.tarp} onChange={handleChange}>
                     {TARP_OPTIONS.map(t => <option key={t}>{t}</option>)}
