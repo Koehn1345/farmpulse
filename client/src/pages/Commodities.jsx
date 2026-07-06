@@ -23,6 +23,7 @@ export default function Commodities() {
   const [form, setForm] = useState(emptyForage);
   const [saving, setSaving] = useState(false);
   const [viewRow, setViewRow] = useState(null);
+  const [addingCropType, setAddingCropType] = useState(false);
 
   const load = async () => {
     const [c, f, l] = await Promise.all([api.commodities.list(), api.fields.list(), api.loads.list()]);
@@ -30,8 +31,10 @@ export default function Commodities() {
   };
   useEffect(() => { load(); }, []);
 
-  const openAdd = () => { setForm(tab === 'Forage' ? emptyForage : emptyGrain); setModal('add'); };
-  const openEdit = (row) => { setForm({ ...row, year: String(row.year || currentYear), price_per_ton: String(row.price_per_ton || ''), bale_count: String(row.bale_count || ''), avg_bale_weight_lbs: String(row.avg_bale_weight_lbs || ''), actual_stack_tonnage: String(row.actual_stack_tonnage || ''), estimated_total_tons: String(row.estimated_total_tons || ''), actual_tons: String(row.actual_tons || '') }); setModal({ edit: row }); };
+  const cropTypes = [...new Set(rows.filter(r => r.type === 'Grain' && r.type_crop).map(r => r.type_crop))].sort();
+
+  const openAdd = () => { setForm(tab === 'Forage' ? emptyForage : emptyGrain); setAddingCropType(false); setModal('add'); };
+  const openEdit = (row) => { setForm({ ...row, year: String(row.year || currentYear), price_per_ton: String(row.price_per_ton || ''), bale_count: String(row.bale_count || ''), avg_bale_weight_lbs: String(row.avg_bale_weight_lbs || ''), actual_stack_tonnage: String(row.actual_stack_tonnage || ''), estimated_total_tons: String(row.estimated_total_tons || ''), actual_tons: String(row.actual_tons || '') }); setAddingCropType(false); setModal({ edit: row }); };
   const closeModal = () => setModal(null);
   const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
@@ -186,7 +189,32 @@ export default function Commodities() {
             <div className="space-y-4">
               <div className="grid grid-cols-3 gap-4">
                 <div><label className="label">Year</label><input className="input" type="number" name="year" value={form.year} onChange={handleChange} placeholder={String(currentYear)} /></div>
-                <div><label className="label">Crop Type</label><input className="input" name="type_crop" value={form.type_crop} onChange={handleChange} placeholder="Winter Wheat, Barley…" /></div>
+                <div>
+                  <label className="label">Crop Type</label>
+                  {addingCropType ? (
+                    <div className="space-y-1">
+                      <input className="input" name="type_crop" value={form.type_crop} onChange={handleChange} placeholder="Winter Wheat, Barley…" autoFocus />
+                      {cropTypes.length > 0 && (
+                        <button type="button" className="text-xs text-soil-400 hover:text-soil-300" onClick={() => { setAddingCropType(false); setForm(f => ({ ...f, type_crop: '' })); }}>
+                          Choose existing
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <select
+                      className="input"
+                      value={form.type_crop}
+                      onChange={e => {
+                        if (e.target.value === '__new__') { setAddingCropType(true); setForm(f => ({ ...f, type_crop: '' })); }
+                        else setForm(f => ({ ...f, type_crop: e.target.value }));
+                      }}
+                    >
+                      <option value="">Select crop…</option>
+                      {cropTypes.map(c => <option key={c} value={c}>{c}</option>)}
+                      <option value="__new__">+ Add new crop type…</option>
+                    </select>
+                  )}
+                </div>
                 <div><label className="label">Field</label>
                   <select className="input" name="field_id" value={form.field_id} onChange={handleChange}>
                     <option value="">Select field…</option>
