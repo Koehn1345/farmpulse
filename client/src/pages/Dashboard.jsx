@@ -98,8 +98,8 @@ export default function Dashboard() {
           <h2 className="text-sm font-semibold text-slate-300 mb-4">Income by Field</h2>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={data.incomeByField} barSize={32}>
-              <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
+              <XAxis dataKey="name" tick={{ fill: '#a1a1aa', fontSize: 12 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
               <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                 {data.incomeByField.map((_, i) => (
