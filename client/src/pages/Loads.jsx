@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Fragment } from 'react';
 import { api } from '../lib/api.js';
 import Modal from '../components/Modal.jsx';
 import PageHeader from '../components/PageHeader.jsx';
@@ -340,43 +340,60 @@ export default function Loads() {
                 </tr>
               </thead>
               <tbody>
-                {sortedRows.map(row => (
-                  <tr key={row.id} className="table-row cursor-pointer" onClick={() => setViewRow(row)}>
-                    <td className="px-4 py-3">
-                      {!row.net_weight && (
-                        <button
-                          className="text-green-500 hover:text-green-400 transition-colors"
-                          title="Complete this load"
-                          onClick={(e) => { e.stopPropagation(); openEdit(row); }}
-                        >
-                          <CheckCircle size={16} />
-                        </button>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {row.net_weight
-                        ? <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-900/40 text-green-400 border border-green-800/50">Complete</span>
-                        : <span className="px-2 py-0.5 rounded text-xs font-medium bg-amber-900/40 text-amber-400 border border-amber-800/50">New</span>
-                      }
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-slate-400">{formatDate(row.date)}</td>
-                    <td className="px-4 py-3 text-slate-200">{row.customer_name || '—'}</td>
-                    <td className="px-4 py-3 text-slate-400">{row.field_name || '—'}</td>
-                    <td className="px-4 py-3 text-slate-300 text-xs">{typeLabel(row.type)}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-slate-400">{row.type === 'Forage' ? (row.bale_count ?? '—') : '—'}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-slate-300">{row.bol_number || '—'}</td>
-                    <td className="px-4 py-3 text-slate-400 text-xs">{row.shipper || '—'}</td>
-                    <td className="px-4 py-3 text-xs text-slate-400">
-                      {row.driver && <span>{row.driver}</span>}
-                      {row.truck_number && <span className="ml-1 font-mono text-slate-500">#{row.truck_number}</span>}
-                      {!row.driver && !row.truck_number && '—'}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-slate-400 text-xs">{row.gross_weight?.toLocaleString() || '—'}</td>
-                    <td className="px-4 py-3 font-mono text-slate-400 text-xs">{row.tare_weight?.toLocaleString() || '—'}</td>
-                    <td className="px-4 py-3 font-mono font-medium text-slate-100">{row.net_weight?.toLocaleString() || '—'}</td>
-                    <td className="px-4 py-3 font-mono text-slate-400 text-xs">{row.net_weight ? (row.net_weight / 2000).toFixed(2) : '—'}</td>
-                  </tr>
-                ))}
+                {(() => {
+                  let lastDate = null;
+                  return sortedRows.map(row => {
+                    const rowDate = row.date ? row.date.slice(0, 10) : '';
+                    const isNewDay = rowDate !== lastDate;
+                    lastDate = rowDate;
+                    return (
+                      <Fragment key={row.id}>
+                        {isNewDay && (
+                          <tr>
+                            <td colSpan={14} className="px-4 pt-4 pb-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider bg-slate-950">
+                              {formatDate(row.date)}
+                            </td>
+                          </tr>
+                        )}
+                        <tr className="table-row cursor-pointer" onClick={() => setViewRow(row)}>
+                          <td className="px-4 py-3">
+                            {!row.net_weight && (
+                              <button
+                                className="text-green-500 hover:text-green-400 transition-colors"
+                                title="Complete this load"
+                                onClick={(e) => { e.stopPropagation(); openEdit(row); }}
+                              >
+                                <CheckCircle size={16} />
+                              </button>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {row.net_weight
+                              ? <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-900/40 text-green-400 border border-green-800/50">Complete</span>
+                              : <span className="px-2 py-0.5 rounded text-xs font-medium bg-amber-900/40 text-amber-400 border border-amber-800/50">New</span>
+                            }
+                          </td>
+                          <td className="px-4 py-3 font-mono text-xs text-slate-400">{formatDate(row.date)}</td>
+                          <td className="px-4 py-3 text-slate-200">{row.customer_name || '—'}</td>
+                          <td className="px-4 py-3 text-slate-400">{row.field_name || '—'}</td>
+                          <td className="px-4 py-3 text-slate-300 text-xs">{typeLabel(row.type)}</td>
+                          <td className="px-4 py-3 font-mono text-xs text-slate-400">{row.type === 'Forage' ? (row.bale_count ?? '—') : '—'}</td>
+                          <td className="px-4 py-3 font-mono text-xs text-slate-300">{row.bol_number || '—'}</td>
+                          <td className="px-4 py-3 text-slate-400 text-xs">{row.shipper || '—'}</td>
+                          <td className="px-4 py-3 text-xs text-slate-400">
+                            {row.driver && <span>{row.driver}</span>}
+                            {row.truck_number && <span className="ml-1 font-mono text-slate-500">#{row.truck_number}</span>}
+                            {!row.driver && !row.truck_number && '—'}
+                          </td>
+                          <td className="px-4 py-3 font-mono text-slate-400 text-xs">{row.gross_weight?.toLocaleString() || '—'}</td>
+                          <td className="px-4 py-3 font-mono text-slate-400 text-xs">{row.tare_weight?.toLocaleString() || '—'}</td>
+                          <td className="px-4 py-3 font-mono font-medium text-slate-100">{row.net_weight?.toLocaleString() || '—'}</td>
+                          <td className="px-4 py-3 font-mono text-slate-400 text-xs">{row.net_weight ? (row.net_weight / 2000).toFixed(2) : '—'}</td>
+                        </tr>
+                      </Fragment>
+                    );
+                  });
+                })()}
                 {sortedRows.length === 0 && (
                   <tr><td colSpan={14} className="px-4 py-12 text-center text-slate-500">No loads logged yet.</td></tr>
                 )}
