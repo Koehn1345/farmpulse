@@ -79,7 +79,7 @@ function QuickAddCommodity({ type, fields, onSave, onCancel }) {
   };
   return (
     <div className="mt-2 p-3 bg-slate-800 rounded-lg border border-slate-700 space-y-2">
-      <div className="text-xs text-slate-400 font-medium">New {displayType} Commodity</div>
+      <div className="text-xs text-slate-400 font-medium">New {displayType} Crop</div>
       <select className="input" value={form.field_id} onChange={e => setForm(f => ({ ...f, field_id: e.target.value }))}>
         <option value="">Field (optional)</option>
         {fields.map(f => <option key={f.id} value={f.id}>{f.field_name}</option>)}
@@ -186,6 +186,7 @@ export default function Loads() {
   };
 
   const typeLabel = (t) => t === 'Forage' ? 'Stacks' : 'Grain';
+  const cropLabel = (row) => (row.type === 'Forage' ? (row.stack_number || row.type_of_forage) : row.type_crop) || '—';
 
   const handleSave = async () => {
     if (!form.date || !form.customerId) return;
@@ -334,7 +335,7 @@ export default function Loads() {
             <table className="w-full text-sm whitespace-nowrap">
               <thead>
                 <tr className="border-b border-slate-800">
-                  {['', 'Status', 'Date', 'Customer', 'Field', 'Bales', 'BOL #', 'Shipper', 'Driver / Truck', 'Gross', 'Tare', 'Net (lbs)', 'Tons', 'Type'].map(h => (
+                  {['', 'Status', 'Date', 'Customer', 'Field', 'Crop', 'Bales', 'BOL #', 'Shipper', 'Driver / Truck', 'Gross', 'Tare', 'Net (lbs)', 'Tons', 'Type'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -350,7 +351,7 @@ export default function Loads() {
                       <Fragment key={row.id}>
                         {isNewDay && (
                           <tr>
-                            <td colSpan={14} className="px-4 pt-4 pb-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider bg-slate-950">
+                            <td colSpan={15} className="px-4 pt-4 pb-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider bg-slate-950">
                               {formatDate(row.date)}
                             </td>
                           </tr>
@@ -376,6 +377,7 @@ export default function Loads() {
                           <td className="px-4 py-3 font-mono text-xs text-slate-400">{formatDate(row.date)}</td>
                           <td className="px-4 py-3 text-slate-200">{row.customer_name || '—'}</td>
                           <td className="px-4 py-3 text-slate-400">{row.field_name || '—'}</td>
+                          <td className="px-4 py-3 text-slate-300 text-xs">{cropLabel(row)}</td>
                           <td className="px-4 py-3 font-mono text-xs text-slate-400">{row.type === 'Forage' ? (row.bale_count ?? '—') : '—'}</td>
                           <td className="px-4 py-3 font-mono text-xs text-slate-300">{row.bol_number || '—'}</td>
                           <td className="px-4 py-3 text-slate-400 text-xs">{row.shipper || '—'}</td>
@@ -395,7 +397,7 @@ export default function Loads() {
                   });
                 })()}
                 {sortedRows.length === 0 && (
-                  <tr><td colSpan={14} className="px-4 py-12 text-center text-slate-500">No loads logged yet.</td></tr>
+                  <tr><td colSpan={15} className="px-4 py-12 text-center text-slate-500">No loads logged yet.</td></tr>
                 )}
               </tbody>
             </table>
@@ -458,13 +460,13 @@ export default function Loads() {
               )}
             </div>
 
-            {/* Commodity with quick-add */}
+            {/* Crop with quick-add */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="label !mb-0">Commodity</label>
+                <label className="label !mb-0">Crop</label>
                 {quickAdd !== 'commodity' && canManageSupportingRecords && (
                   <button className="text-xs text-soil-400 hover:text-soil-300" onClick={() => setQuickAdd('commodity')}>
-                    + New Commodity
+                    + New Crop
                   </button>
                 )}
               </div>
@@ -586,6 +588,7 @@ export default function Loads() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div><div className="label">Customer</div><div className="text-slate-100">{viewRow.customer_name || '—'}</div></div>
               <div><div className="label">Field</div><div className="text-slate-100">{viewRow.field_name || '—'}</div></div>
+              <div><div className="label">Crop</div><div className="text-slate-100">{cropLabel(viewRow)}</div></div>
               <div><div className="label">Type</div><div className="text-slate-100">{typeLabel(viewRow.type)}</div></div>
               <div><div className="label">Bales</div><div className="font-mono text-slate-100">{viewRow.type === 'Forage' ? (viewRow.bale_count ?? '—') : '—'}</div></div>
               <div><div className="label">Shipper</div><div className="text-slate-100">{viewRow.shipper || '—'}</div></div>
