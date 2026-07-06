@@ -72,6 +72,8 @@ export default function Commodities() {
 
   const fieldName = (id) => fields.find(f => f.id === id)?.field_name || '—';
   const filtered = rows.filter(r => r.type === tab);
+  const balesHauled = (id) => loads.filter(l => l.commodity_id === id).reduce((s, l) => s + (l.bale_count || 0), 0);
+  const balesLeft = (row) => row.bale_count != null ? row.bale_count - balesHauled(row.id) : null;
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
@@ -101,58 +103,63 @@ export default function Commodities() {
         <div className="text-slate-500 text-sm py-8 text-center">Loading…</div>
       ) : tab === 'Forage' ? (
         <div className="card overflow-hidden p-0">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-800">
-                {[...['Year', 'Stack #', 'Field', 'Commodity', 'Cutting', 'Tarp', 'Bales', 'Est. Tons', 'Actual Tons'], ...(isAdmin ? ['$/Ton'] : [])].map(h => (
-                  <th key={h} className="text-left px-5 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(row => (
-                <tr key={row.id} className="table-row cursor-pointer" onClick={() => setViewRow(row)}>
-                  <td className="px-5 py-3 font-mono text-xs text-slate-400">{row.year || '—'}</td>
-                  <td className="px-5 py-3 font-mono text-xs text-slate-300">{row.stack_number || '—'}</td>
-                  <td className="px-5 py-3 text-slate-200">{fieldName(row.field_id)}</td>
-                  <td className="px-5 py-3 text-slate-200">{row.type_of_forage}</td>
-                  <td className="px-5 py-3 text-slate-300 text-xs">{row.cutting}</td>
-                  <td className="px-5 py-3 text-slate-400 text-xs">{row.tarp || 'No Tarp'}</td>
-                  <td className="px-5 py-3 text-slate-300 font-mono">{row.bale_count?.toLocaleString() || '—'}</td>
-                  <td className="px-5 py-3 text-slate-300 font-mono">{row.estimated_stack_tonnage ? parseFloat(row.estimated_stack_tonnage).toFixed(1) : '—'}</td>
-                  <td className="px-5 py-3">{row.actual_stack_tonnage ? <span className="text-emerald-400 font-mono">{parseFloat(row.actual_stack_tonnage).toFixed(1)}</span> : <span className="text-slate-600 text-xs">Pending</span>}</td>
-                  {isAdmin && <td className="px-5 py-3 font-mono text-slate-300">{row.price_per_ton ? `$${parseFloat(row.price_per_ton).toFixed(2)}` : '—'}</td>}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm whitespace-nowrap">
+              <thead>
+                <tr className="border-b border-slate-800">
+                  {[...['Year', 'Stack #', 'Field', 'Commodity', 'Cutting', 'Tarp', 'Bales', 'Est. Tons', 'Bales Left', 'Actual Tons'], ...(isAdmin ? ['$/Ton'] : [])].map(h => (
+                    <th key={h} className="text-left px-5 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
+                  ))}
                 </tr>
-              ))}
-              {filtered.length === 0 && <tr><td colSpan={isAdmin ? 10 : 9} className="px-5 py-12 text-center text-slate-500">No stacks yet.</td></tr>}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filtered.map(row => (
+                  <tr key={row.id} className="table-row cursor-pointer" onClick={() => setViewRow(row)}>
+                    <td className="px-5 py-3 font-mono text-xs text-slate-400">{row.year || '—'}</td>
+                    <td className="px-5 py-3 font-mono text-xs text-slate-300">{row.stack_number || '—'}</td>
+                    <td className="px-5 py-3 text-slate-200">{fieldName(row.field_id)}</td>
+                    <td className="px-5 py-3 text-slate-200">{row.type_of_forage}</td>
+                    <td className="px-5 py-3 text-slate-300 text-xs">{row.cutting}</td>
+                    <td className="px-5 py-3 text-slate-400 text-xs">{row.tarp || 'No Tarp'}</td>
+                    <td className="px-5 py-3 text-slate-300 font-mono">{row.bale_count?.toLocaleString() || '—'}</td>
+                    <td className="px-5 py-3 text-slate-300 font-mono">{row.estimated_stack_tonnage ? parseFloat(row.estimated_stack_tonnage).toFixed(1) : '—'}</td>
+                    <td className="px-5 py-3 font-mono">{row.bale_count != null ? balesLeft(row).toLocaleString() : '—'}</td>
+                    <td className="px-5 py-3">{row.actual_stack_tonnage ? <span className="text-emerald-400 font-mono">{parseFloat(row.actual_stack_tonnage).toFixed(1)}</span> : <span className="text-slate-600 text-xs">Pending</span>}</td>
+                    {isAdmin && <td className="px-5 py-3 font-mono text-slate-300">{row.price_per_ton ? `$${parseFloat(row.price_per_ton).toFixed(2)}` : '—'}</td>}
+                  </tr>
+                ))}
+                {filtered.length === 0 && <tr><td colSpan={isAdmin ? 11 : 10} className="px-5 py-12 text-center text-slate-500">No stacks yet.</td></tr>}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : (
         <div className="card overflow-hidden p-0">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-800">
-                {[...['Year', 'Crop', 'Field', 'Seed', 'Est. Tons', 'Actual Tons'], ...(isAdmin ? ['$/Ton'] : [])].map(h => (
-                  <th key={h} className="text-left px-5 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(row => (
-                <tr key={row.id} className="table-row cursor-pointer" onClick={() => setViewRow(row)}>
-                  <td className="px-5 py-3 font-mono text-xs text-slate-400">{row.year || '—'}</td>
-                  <td className="px-5 py-3 font-medium text-slate-100">{row.type_crop}</td>
-                  <td className="px-5 py-3 text-slate-200">{fieldName(row.field_id)}</td>
-                  <td className="px-5 py-3 text-slate-400 text-xs">{row.seed_details || '—'}</td>
-                  <td className="px-5 py-3 font-mono text-slate-300">{row.estimated_total_tons ? parseFloat(row.estimated_total_tons).toFixed(1) : '—'}</td>
-                  <td className="px-5 py-3">{row.actual_tons ? <span className="text-amber-400 font-mono">{parseFloat(row.actual_tons).toFixed(1)}</span> : <span className="text-slate-600 text-xs">Pending</span>}</td>
-                  {isAdmin && <td className="px-5 py-3 font-mono text-slate-300">{row.price_per_ton ? `$${parseFloat(row.price_per_ton).toFixed(2)}` : '—'}</td>}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm whitespace-nowrap">
+              <thead>
+                <tr className="border-b border-slate-800">
+                  {[...['Year', 'Crop', 'Field', 'Seed', 'Est. Tons', 'Actual Tons'], ...(isAdmin ? ['$/Ton'] : [])].map(h => (
+                    <th key={h} className="text-left px-5 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
+                  ))}
                 </tr>
-              ))}
-              {filtered.length === 0 && <tr><td colSpan={isAdmin ? 7 : 6} className="px-5 py-12 text-center text-slate-500">No grain fields yet.</td></tr>}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filtered.map(row => (
+                  <tr key={row.id} className="table-row cursor-pointer" onClick={() => setViewRow(row)}>
+                    <td className="px-5 py-3 font-mono text-xs text-slate-400">{row.year || '—'}</td>
+                    <td className="px-5 py-3 font-medium text-slate-100">{row.type_crop}</td>
+                    <td className="px-5 py-3 text-slate-200">{fieldName(row.field_id)}</td>
+                    <td className="px-5 py-3 text-slate-400 text-xs">{row.seed_details || '—'}</td>
+                    <td className="px-5 py-3 font-mono text-slate-300">{row.estimated_total_tons ? parseFloat(row.estimated_total_tons).toFixed(1) : '—'}</td>
+                    <td className="px-5 py-3">{row.actual_tons ? <span className="text-amber-400 font-mono">{parseFloat(row.actual_tons).toFixed(1)}</span> : <span className="text-slate-600 text-xs">Pending</span>}</td>
+                    {isAdmin && <td className="px-5 py-3 font-mono text-slate-300">{row.price_per_ton ? `$${parseFloat(row.price_per_ton).toFixed(2)}` : '—'}</td>}
+                  </tr>
+                ))}
+                {filtered.length === 0 && <tr><td colSpan={isAdmin ? 7 : 6} className="px-5 py-12 text-center text-slate-500">No grain fields yet.</td></tr>}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
