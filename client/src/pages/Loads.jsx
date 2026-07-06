@@ -3,7 +3,7 @@ import { api } from '../lib/api.js';
 import Modal from '../components/Modal.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import { useFarm } from '../context/FarmContext.jsx';
-import { Plus, Pencil, Trash2, Filter, FileImage } from 'lucide-react';
+import { Plus, Pencil, Trash2, Filter, FileImage, Calendar } from 'lucide-react';
 import ImageUpload from '../components/ImageUpload.jsx';
 import { formatDate } from '../lib/format.js';
 
@@ -124,6 +124,9 @@ export default function Loads() {
   const [form, setForm] = useState(emptyLoad);
   const [saving, setSaving] = useState(false);
   const [filterType, setFilterType] = useState('All');
+  const [filterStatus, setFilterStatus] = useState('All');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [quickAdd, setQuickAdd] = useState(null); // 'customer' | 'field' | 'commodity'
   const [viewRow, setViewRow] = useState(null);
 
@@ -236,7 +239,15 @@ export default function Loads() {
     setQuickAdd(null);
   };
 
-  const filtered = filterType === 'All' ? rows : rows.filter(r => r.type === filterType);
+  const filtered = rows.filter(r => {
+    if (filterType !== 'All' && r.type !== filterType) return false;
+    if (filterStatus === 'New' && r.net_weight) return false;
+    if (filterStatus === 'Complete' && !r.net_weight) return false;
+    const rowDate = r.date ? r.date.slice(0, 10) : '';
+    if (dateFrom && rowDate < dateFrom) return false;
+    if (dateTo && rowDate > dateTo) return false;
+    return true;
+  });
   const sortedRows = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
   const filteredCommodities = commodities.filter(c => c.type === form.type);
 
@@ -253,7 +264,7 @@ export default function Loads() {
       />
 
       {/* Filter */}
-      <div className="flex items-center gap-2 mb-5">
+      <div className="flex flex-wrap items-center gap-2 mb-5">
         <Filter size={14} className="text-slate-500" />
         {['All', 'Forage', 'Grain'].map(t => (
           <button
@@ -266,13 +277,53 @@ export default function Loads() {
             {t === 'All' ? 'All' : typeLabel(t)} {t !== 'All' && `(${rows.filter(r => r.type === t).length})`}
           </button>
         ))}
-        <span className="ml-2 text-xs text-slate-500">
-          {rows.filter(r => !r.net_weight).length > 0 && (
-            <span className="px-2 py-0.5 rounded bg-amber-900/40 text-amber-400 border border-amber-800/50">
-              {rows.filter(r => !r.net_weight).length} New
-            </span>
+
+        <span className="w-px h-5 bg-slate-800 mx-1" />
+
+        {['All', 'New', 'Complete'].map(s => (
+          <button
+            key={s}
+            onClick={() => setFilterStatus(s)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              filterStatus === s
+                ? s === 'New'
+                  ? 'bg-amber-900/40 text-amber-400 border border-amber-700'
+                  : s === 'Complete'
+                    ? 'bg-green-900/40 text-green-400 border border-green-700'
+                    : 'bg-soil-500/30 text-soil-300 border border-soil-600'
+                : 'text-slate-400 border border-slate-800 hover:border-slate-700'
+            }`}
+          >
+            {s} {s !== 'All' && `(${rows.filter(r => s === 'New' ? !r.net_weight : r.net_weight).length})`}
+          </button>
+        ))}
+
+        <span className="w-px h-5 bg-slate-800 mx-1" />
+
+        <div className="flex items-center gap-1.5">
+          <Calendar size={14} className="text-slate-500 shrink-0" />
+          <input
+            type="date"
+            className="input !w-auto !py-1.5 text-xs"
+            value={dateFrom}
+            onChange={e => setDateFrom(e.target.value)}
+          />
+          <span className="text-slate-600 text-xs">to</span>
+          <input
+            type="date"
+            className="input !w-auto !py-1.5 text-xs"
+            value={dateTo}
+            onChange={e => setDateTo(e.target.value)}
+          />
+          {(dateFrom || dateTo) && (
+            <button
+              className="text-xs text-slate-500 hover:text-slate-300"
+              onClick={() => { setDateFrom(''); setDateTo(''); }}
+            >
+              Clear
+            </button>
           )}
-        </span>
+        </div>
       </div>
 
       {loading ? (
