@@ -28,6 +28,7 @@ export default function Commodities() {
   const [saving, setSaving] = useState(false);
   const [viewRow, setViewRow] = useState(null);
   const [addingCropType, setAddingCropType] = useState(false);
+  const [addingForageCommodity, setAddingForageCommodity] = useState(false);
 
   const load = async () => {
     const [c, f, l] = await Promise.all([api.commodities.list(), api.fields.list(), api.loads.list()]);
@@ -48,9 +49,10 @@ export default function Commodities() {
   }, [rows, location.state]);
 
   const cropTypes = [...new Set(rows.filter(r => r.type === 'Grain' && r.type_crop).map(r => r.type_crop))].sort();
+  const forageCommodities = [...new Set(rows.filter(r => r.type === 'Forage' && r.type_of_forage).map(r => r.type_of_forage))].sort();
 
-  const openAdd = () => { setForm(tab === 'Forage' ? emptyForage : emptyGrain); setAddingCropType(false); setModal('add'); };
-  const openEdit = (row) => { setForm({ ...row, year: String(row.year || currentYear), price_per_ton: String(row.price_per_ton || ''), bale_count: String(row.bale_count || ''), avg_bale_weight_lbs: String(row.avg_bale_weight_lbs || ''), actual_stack_tonnage: String(row.actual_stack_tonnage || ''), estimated_total_tons: String(row.estimated_total_tons || ''), actual_tons: String(row.actual_tons || ''), tarp: row.tarp || 'No Tarp', notes: row.notes || '' }); setAddingCropType(false); setModal({ edit: row }); };
+  const openAdd = () => { setForm(tab === 'Forage' ? emptyForage : emptyGrain); setAddingCropType(false); setAddingForageCommodity(false); setModal('add'); };
+  const openEdit = (row) => { setForm({ ...row, year: String(row.year || currentYear), price_per_ton: String(row.price_per_ton || ''), bale_count: String(row.bale_count || ''), avg_bale_weight_lbs: String(row.avg_bale_weight_lbs || ''), actual_stack_tonnage: String(row.actual_stack_tonnage || ''), estimated_total_tons: String(row.estimated_total_tons || ''), actual_tons: String(row.actual_tons || ''), tarp: row.tarp || 'No Tarp', notes: row.notes || '' }); setAddingCropType(false); setAddingForageCommodity(false); setModal({ edit: row }); };
   const closeModal = () => setModal(null);
   const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
@@ -196,7 +198,32 @@ export default function Commodities() {
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-4">
-                <div><label className="label">Commodity</label><input className="input" name="type_of_forage" value={form.type_of_forage} onChange={handleChange} placeholder="Alfalfa, Timothy…" /></div>
+                <div>
+                  <label className="label">Commodity</label>
+                  {addingForageCommodity ? (
+                    <div className="space-y-1">
+                      <input className="input" name="type_of_forage" value={form.type_of_forage} onChange={handleChange} placeholder="Alfalfa, Timothy…" autoFocus />
+                      {forageCommodities.length > 0 && (
+                        <button type="button" className="text-xs text-soil-400 hover:text-soil-300" onClick={() => { setAddingForageCommodity(false); setForm(f => ({ ...f, type_of_forage: '' })); }}>
+                          Choose existing
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <select
+                      className="input"
+                      value={form.type_of_forage}
+                      onChange={e => {
+                        if (e.target.value === '__new__') { setAddingForageCommodity(true); setForm(f => ({ ...f, type_of_forage: '' })); }
+                        else setForm(f => ({ ...f, type_of_forage: e.target.value }));
+                      }}
+                    >
+                      <option value="">Select commodity…</option>
+                      {forageCommodities.map(c => <option key={c} value={c}>{c}</option>)}
+                      <option value="__new__">+ Add new commodity…</option>
+                    </select>
+                  )}
+                </div>
                 <div><label className="label">Cutting</label>
                   <select className="input" name="cutting" value={form.cutting} onChange={handleChange}>
                     {CUTTINGS.map(c => <option key={c}>{c}</option>)}
