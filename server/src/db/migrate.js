@@ -152,9 +152,37 @@ CREATE TABLE IF NOT EXISTS crop_history (
   deleted_at TIMESTAMPTZ
 );
 
+-- Vehicles + fuel tracking
+CREATE TABLE IF NOT EXISTS vehicles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  farm_id UUID NOT NULL REFERENCES farms(id) ON DELETE CASCADE,
+  name_number TEXT NOT NULL,
+  make TEXT,
+  fuel_type TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS fuel_entries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  farm_id UUID NOT NULL REFERENCES farms(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  vehicle_id UUID REFERENCES vehicles(id),
+  fuel_type TEXT,
+  fuel_location TEXT,
+  gallons NUMERIC(10,2),
+  logged_by_clerk_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
+);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_fields_farm ON fields(farm_id) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_crop_history_field ON crop_history(field_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_vehicles_farm ON vehicles(farm_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_fuel_entries_farm ON fuel_entries(farm_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_fuel_entries_vehicle ON fuel_entries(vehicle_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_fuel_entries_date ON fuel_entries(farm_id, date DESC) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_customers_farm ON customers(farm_id) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_commodities_farm ON commodities(farm_id) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_loads_farm ON loads(farm_id) WHERE deleted_at IS NULL;

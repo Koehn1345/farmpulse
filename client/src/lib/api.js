@@ -67,6 +67,18 @@ export const api = {
     update: (id, b) => req('PUT', `/loads/${id}`, b),
     delete: (id) => req('DELETE', `/loads/${id}`),
   },
+  vehicles: {
+    list: () => req('GET', '/vehicles'),
+    create: (b) => req('POST', '/vehicles', b),
+    update: (id, b) => req('PUT', `/vehicles/${id}`, b),
+    delete: (id) => req('DELETE', `/vehicles/${id}`),
+  },
+  fuelEntries: {
+    list: () => req('GET', '/fuel-entries'),
+    create: (b) => req('POST', '/fuel-entries', b),
+    update: (id, b) => req('PUT', `/fuel-entries/${id}`, b),
+    delete: (id) => req('DELETE', `/fuel-entries/${id}`),
+  },
   income: {
     list: () => req('GET', '/income'),
     create: (b) => req('POST', '/income', b),

@@ -11,7 +11,7 @@ import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-do
 import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, Truck, Wheat, Users, TrendingUp, TrendingDown,
-  MapPin, Menu, X, Settings, Users2, LogOut
+  MapPin, Menu, X, Settings, Users2, LogOut, Car, Fuel as FuelIcon
 } from 'lucide-react';
 import { setTokenGetter } from './lib/api.js';
 import { FarmProvider, useFarm } from './context/FarmContext.jsx';
@@ -22,6 +22,8 @@ import Customers from './pages/Customers.jsx';
 import Income from './pages/Income.jsx';
 import Expenses from './pages/Expenses.jsx';
 import Fields from './pages/Fields.jsx';
+import Vehicles from './pages/Vehicles.jsx';
+import Fuel from './pages/Fuel.jsx';
 import Team from './pages/Team.jsx';
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -74,6 +76,8 @@ const adminNav = [
   { to: '/fields', label: 'Fields', icon: MapPin },
   { to: '/commodities', label: 'Commodities', icon: Wheat },
   { to: '/loads', label: 'Loads', icon: Truck },
+  { to: '/vehicles', label: 'Vehicles', icon: Car },
+  { to: '/fuel', label: 'Fuel', icon: FuelIcon },
   { to: '/income', label: 'Income', icon: TrendingUp },
   { to: '/expenses', label: 'Expenses', icon: TrendingDown },
   { to: '/customers', label: 'Customers', icon: Users },
@@ -84,10 +88,13 @@ const employeeNav = [
   { to: '/fields', label: 'Fields', icon: MapPin },
   { to: '/commodities', label: 'Commodities', icon: Wheat },
   { to: '/loads', label: 'Loads', icon: Truck, exact: true },
+  { to: '/vehicles', label: 'Vehicles', icon: Car },
+  { to: '/fuel', label: 'Fuel', icon: FuelIcon },
 ];
 
 const truckerNav = [
   { to: '/', label: 'Loads', icon: Truck, exact: true },
+  { to: '/fuel', label: 'Fuel', icon: FuelIcon },
 ];
 
 function Sidebar({ open, onClose }) {
@@ -167,6 +174,8 @@ function AppShell() {
                 <Route path="/income" element={<Income />} />
                 <Route path="/expenses" element={<Expenses />} />
                 <Route path="/fields" element={<Fields />} />
+                <Route path="/vehicles" element={<Vehicles />} />
+                <Route path="/fuel" element={<Fuel />} />
                 <Route path="/team" element={<Team />} />
               </>
             ) : role === 'employee' ? (
@@ -175,11 +184,14 @@ function AppShell() {
                 <Route path="/fields" element={<Fields />} />
                 <Route path="/commodities" element={<Commodities />} />
                 <Route path="/loads" element={<Loads />} />
+                <Route path="/vehicles" element={<Vehicles />} />
+                <Route path="/fuel" element={<Fuel />} />
                 <Route path="*" element={<Navigate to="/loads" replace />} />
               </>
             ) : (
               <>
                 <Route path="/" element={<Loads />} />
+                <Route path="/fuel" element={<Fuel />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </>
             )}
