@@ -141,6 +141,15 @@ export default function Fuel() {
   });
   const sortedRows = [...filteredRows].sort((a, b) => new Date(b.date) - new Date(a.date));
 
+  const typesPresent = [...new Set(filteredRows.map(r => r.fuel_type || 'Unspecified'))].sort();
+  const gallonsByType = typesPresent.reduce((acc, t) => {
+    acc[t] = filteredRows
+      .filter(r => (r.fuel_type || 'Unspecified') === t)
+      .reduce((s, r) => s + (parseFloat(r.gallons) || 0), 0);
+    return acc;
+  }, {});
+  const totalGallons = Object.values(gallonsByType).reduce((s, v) => s + v, 0);
+
   const downloadCSV = () => {
     const headers = ['Date', 'Vehicle', 'Fuel Type', 'Location', 'Gallons'];
     const escape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
@@ -204,6 +213,21 @@ export default function Fuel() {
                 Clear
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {!loading && !loadError && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+          {typesPresent.map(t => (
+            <div key={t} className="card-sm">
+              <div className="text-xs text-slate-500 uppercase tracking-wider">{t}</div>
+              <div className="text-xl font-mono text-slate-100 mt-1">{gallonsByType[t].toFixed(1)} gal</div>
+            </div>
+          ))}
+          <div className="card-sm border-soil-600">
+            <div className="text-xs text-slate-500 uppercase tracking-wider">Total</div>
+            <div className="text-xl font-mono text-soil-300 mt-1">{totalGallons.toFixed(1)} gal</div>
           </div>
         </div>
       )}
