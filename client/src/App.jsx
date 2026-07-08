@@ -76,11 +76,11 @@ const adminNav = [
   { to: '/fields', label: 'Fields', icon: MapPin },
   { to: '/commodities', label: 'Commodities', icon: Wheat },
   { to: '/loads', label: 'Loads', icon: Truck },
-  { to: '/vehicles', label: 'Vehicles', icon: Car },
   { to: '/fuel', label: 'Fuel', icon: FuelIcon },
   { to: '/income', label: 'Income', icon: TrendingUp },
   { to: '/expenses', label: 'Expenses', icon: TrendingDown },
   { to: '/customers', label: 'Customers', icon: Users },
+  { to: '/vehicles', label: 'Vehicles', icon: Car },
   { to: '/team', label: 'Team', icon: Users2 },
 ];
 
