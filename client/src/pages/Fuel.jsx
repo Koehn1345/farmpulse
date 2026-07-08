@@ -3,7 +3,7 @@ import { api } from '../lib/api.js';
 import Modal from '../components/Modal.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import { useFarm } from '../context/FarmContext.jsx';
-import { Plus, Pencil, Trash2, Fuel as FuelIcon } from 'lucide-react';
+import { Plus, Pencil, Trash2, Fuel as FuelIcon, Filter, Calendar, Download } from 'lucide-react';
 import { formatDate } from '../lib/format.js';
 
 const FUEL_TYPES = ['On Road Diesel', 'Off Road Diesel', 'Gasolene'];
@@ -48,6 +48,10 @@ export default function Fuel() {
   const [viewRow, setViewRow] = useState(null);
   const [quickAddVehicle, setQuickAddVehicle] = useState(false);
   const [addingLocation, setAddingLocation] = useState(false);
+  const [filterVehicle, setFilterVehicle] = useState('All');
+  const [filterFuelType, setFilterFuelType] = useState('All');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const load = async () => {
     setLoadError(null);
@@ -127,7 +131,37 @@ export default function Fuel() {
     setViewRow(null);
   };
 
-  const sortedRows = [...rows].sort((a, b) => new Date(b.date) - new Date(a.date));
+  const filteredRows = rows.filter(r => {
+    if (filterVehicle !== 'All' && r.vehicle_id !== filterVehicle) return false;
+    if (filterFuelType !== 'All' && r.fuel_type !== filterFuelType) return false;
+    const rowDate = r.date ? r.date.slice(0, 10) : '';
+    if (dateFrom && rowDate < dateFrom) return false;
+    if (dateTo && rowDate > dateTo) return false;
+    return true;
+  });
+  const sortedRows = [...filteredRows].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  const downloadCSV = () => {
+    const headers = ['Date', 'Vehicle', 'Fuel Type', 'Location', 'Gallons'];
+    const escape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const lines = [
+      headers.join(','),
+      ...sortedRows.map(r => [
+        r.date ? r.date.slice(0, 10) : '',
+        r.vehicle_name || '',
+        r.fuel_type || '',
+        r.fuel_location || '',
+        r.gallons ?? '',
+      ].map(escape).join(',')),
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fuel-log-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="p-6 lg:p-8 max-w-6xl mx-auto">
@@ -135,11 +169,44 @@ export default function Fuel() {
         title="Fuel"
         subtitle={`${rows.length} fuel entries`}
         action={
-          <button className="btn-primary" onClick={openAdd}>
-            <Plus size={15} /> Log Fuel
-          </button>
+          <div className="flex gap-2">
+            <button className="btn-secondary" onClick={downloadCSV} disabled={sortedRows.length === 0}>
+              <Download size={15} /> Download CSV
+            </button>
+            <button className="btn-primary" onClick={openAdd}>
+              <Plus size={15} /> Log Fuel
+            </button>
+          </div>
         }
       />
+
+      {!loading && !loadError && (
+        <div className="flex flex-wrap items-center gap-2 mb-5">
+          <Filter size={14} className="text-slate-500" />
+          <select className="input !w-auto text-xs py-1.5" value={filterVehicle} onChange={e => setFilterVehicle(e.target.value)}>
+            <option value="All">All Vehicles</option>
+            {vehicles.map(v => <option key={v.id} value={v.id}>{v.name_number}</option>)}
+          </select>
+          <select className="input !w-auto text-xs py-1.5" value={filterFuelType} onChange={e => setFilterFuelType(e.target.value)}>
+            <option value="All">All Fuel Types</option>
+            {FUEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+
+          <span className="w-px h-5 bg-slate-800 mx-1" />
+
+          <div className="flex items-center gap-1.5">
+            <Calendar size={14} className="text-slate-500 shrink-0" />
+            <input type="date" className="input !w-auto !py-1.5 text-xs" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+            <span className="text-slate-600 text-xs">to</span>
+            <input type="date" className="input !w-auto !py-1.5 text-xs" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+            {(dateFrom || dateTo) && (
+              <button className="text-xs text-slate-500 hover:text-slate-300" onClick={() => { setDateFrom(''); setDateTo(''); }}>
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="text-slate-500 text-sm py-8 text-center">Loading…</div>
