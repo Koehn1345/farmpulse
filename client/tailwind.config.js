@@ -33,8 +33,8 @@ export default {
         }
       },
       fontFamily: {
-        display: ['"Barlow"', 'system-ui', 'sans-serif'],
-        body: ['"Barlow"', 'system-ui', 'sans-serif'],
+        display: ['"Roboto"', 'system-ui', 'sans-serif'],
+        body: ['"Roboto"', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'monospace'],
       }
     },
