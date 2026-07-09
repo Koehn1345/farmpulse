@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { clerk, requireAuth, requireFarm } from './middleware/auth.js';
+import { clerk, requireAuth, requireFarm, requireActiveBilling } from './middleware/auth.js';
 import customerRoutes from './routes/customers.js';
 import fieldRoutes from './routes/fields.js';
 import cropHistoryRoutes from './routes/cropHistory.js';
@@ -27,7 +27,7 @@ app.use(clerk);
 
 // All API routes require auth + farm context
 const api = express.Router();
-api.use(requireAuth, requireFarm);
+api.use(requireAuth, requireFarm, requireActiveBilling);
 
 api.use('/customers', customerRoutes);
 api.use('/fields', fieldRoutes);

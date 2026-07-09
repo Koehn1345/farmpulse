@@ -22,8 +22,12 @@ export function FarmProvider({ children }) {
       .finally(() => setLoading(false));
   }, [organization?.id]);
 
+  const isActive = farm?.billing_status === 'active';
+  const trialValid = farm?.billing_status === 'trial' && farm?.trial_ends_at && new Date(farm.trial_ends_at) > new Date();
+  const isTrialExpired = !!farm && !isActive && !trialValid;
+
   return (
-    <FarmContext.Provider value={{ farm, role, loading, isAdmin: role === 'admin' }}>
+    <FarmContext.Provider value={{ farm, role, loading, isAdmin: role === 'admin', isTrialExpired }}>
       {children}
     </FarmContext.Provider>
   );

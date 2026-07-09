@@ -137,6 +137,14 @@ function Sidebar({ open, onClose }) {
         </nav>
 
         <div className="px-4 py-4 border-t border-slate-800 space-y-1">
+          {role === 'admin' && farm?.billing_status === 'trial' && farm?.trial_ends_at && (() => {
+            const daysLeft = Math.ceil((new Date(farm.trial_ends_at) - new Date()) / (1000 * 60 * 60 * 24));
+            return daysLeft > 0 ? (
+              <div className="px-3 py-1.5 rounded-lg bg-amber-900/30 border border-amber-800/50 text-xs text-amber-400">
+                Trial ends in {daysLeft} day{daysLeft === 1 ? '' : 's'}
+              </div>
+            ) : null;
+          })()}
           <div className="px-3 py-1.5 rounded-lg bg-slate-800/50 text-xs text-slate-400 flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${role === 'admin' ? 'bg-soil-400' : 'bg-blue-400'}`} />
             {role === 'admin' ? 'Admin' : role === 'trucker' ? 'Trucker' : 'Employee'}
@@ -147,11 +155,32 @@ function Sidebar({ open, onClose }) {
   );
 }
 
+function TrialExpiredScreen({ isAdmin }) {
+  return (
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6">
+      <div className="max-w-md text-center">
+        <h1 className="text-3xl font-display text-soil-400 mb-3">Your trial has ended</h1>
+        <p className="text-slate-400 text-sm mb-6">
+          {isAdmin
+            ? "Your 14-day free trial of FarmPulse has ended. Subscribe to keep using your farm's data."
+            : 'Your farm\'s free trial has ended. Ask your farm admin to subscribe to keep using FarmPulse.'}
+        </p>
+        {isAdmin && (
+          <button className="btn-primary mx-auto" disabled title="Billing setup coming soon">
+            Subscribe Now
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AppShell() {
-  const { role, loading } = useFarm();
+  const { role, loading, isAdmin, isTrialExpired } = useFarm();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (loading) return <LoadingScreen />;
+  if (isTrialExpired) return <TrialExpiredScreen isAdmin={isAdmin} />;
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-950">

@@ -31,9 +31,10 @@ export const requireFarm = async (req, res, next) => {
     );
 
     if (farmResult.rows.length === 0) {
-      // Auto-provision farm on first access
+      // Auto-provision farm on first access - starts a 14-day trial
       farmResult = await pool.query(
-        'INSERT INTO farms (clerk_org_id, name) VALUES ($1, $2) RETURNING *',
+        `INSERT INTO farms (clerk_org_id, name, trial_ends_at)
+         VALUES ($1, $2, NOW() + INTERVAL '14 days') RETURNING *`,
         [clerkOrgId, 'My Farm']
       );
     }
@@ -69,6 +70,25 @@ export const requireFarm = async (req, res, next) => {
     console.error('requireFarm error:', err.message);
     res.status(500).json({ error: 'Server error' });
   }
+};
+
+// Paths that must stay reachable even when a farm's trial has expired -
+// the app needs /farm to know it's expired, and future /billing routes
+// need to work so the farm can actually pay to get unblocked.
+const BILLING_EXEMPT_PATHS = ['/farm'];
+
+// Block API access once a trial has expired and the farm hasn't subscribed
+export const requireActiveBilling = (req, res, next) => {
+  if (BILLING_EXEMPT_PATHS.includes(req.path) || req.path.startsWith('/billing')) {
+    return next();
+  }
+  const farm = req.farm;
+  const isActive = farm.billing_status === 'active';
+  const trialValid = farm.billing_status === 'trial' && farm.trial_ends_at && new Date(farm.trial_ends_at) > new Date();
+  if (!isActive && !trialValid) {
+    return res.status(402).json({ error: 'Trial expired', code: 'TRIAL_EXPIRED' });
+  }
+  next();
 };
 
 // Role gate middleware

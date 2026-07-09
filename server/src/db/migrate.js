@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS farms (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   clerk_org_id TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
+  billing_status TEXT NOT NULL DEFAULT 'trial',
+  trial_ends_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
