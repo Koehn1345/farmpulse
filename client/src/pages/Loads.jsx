@@ -428,7 +428,7 @@ export default function Loads() {
                               <button
                                 className="text-green-500 hover:text-green-400 transition-colors"
                                 title="Complete this load"
-                                onClick={(e) => { e.stopPropagation(); role === 'trucker' ? openDriverUpdate(row) : openEdit(row); }}
+                                onClick={(e) => { e.stopPropagation(); openDriverUpdate(row); }}
                               >
                                 <CheckCircle size={16} />
                               </button>
