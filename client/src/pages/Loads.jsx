@@ -14,6 +14,12 @@ const emptyLoad = {
   bol_url: '', scale_ticket_url: '', misc_url: '',
 };
 
+const emptyDriverUpdate = {
+  baleCount: '', grossWeight: '', tareWeight: '', netWeight: '',
+  driver: '', truckNumber: '', bolNumber: '',
+  bol_url: '', scale_ticket_url: '', misc_url: '',
+};
+
 // Inline quick-add sub-forms
 function QuickAddCustomer({ onSave, onCancel }) {
   const [name, setName] = useState('');
@@ -129,6 +135,8 @@ export default function Loads() {
   const [dateTo, setDateTo] = useState('');
   const [quickAdd, setQuickAdd] = useState(null); // 'customer' | 'field' | 'commodity'
   const [viewRow, setViewRow] = useState(null);
+  const [driverUpdate, setDriverUpdate] = useState(null);
+  const [driverForm, setDriverForm] = useState(emptyDriverUpdate);
 
   const loadData = async () => {
     const [l, c, f, co] = await Promise.all([
@@ -170,7 +178,24 @@ export default function Loads() {
     setQuickAdd(null);
     setModal({ edit: row });
   };
+  const openDriverUpdate = (row) => {
+    setDriverForm({
+      baleCount: row.bale_count ?? '',
+      grossWeight: row.gross_weight ?? '',
+      tareWeight: row.tare_weight ?? '',
+      netWeight: row.net_weight ?? '',
+      driver: row.driver || '',
+      truckNumber: row.truck_number || '',
+      bolNumber: row.bol_number || '',
+      bol_url: row.bol_url || '',
+      scale_ticket_url: row.scale_ticket_url || '',
+      misc_url: row.misc_url || '',
+    });
+    setDriverUpdate(row);
+    setViewRow(null);
+  };
   const closeModal = () => { setModal(null); setQuickAdd(null); };
+  const closeDriverUpdate = () => { setDriverUpdate(null); };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -187,6 +212,19 @@ export default function Loads() {
 
   const typeLabel = (t) => t === 'Forage' ? 'Stacks' : 'Grain';
   const cropLabel = (row) => (row.type === 'Forage' ? (row.stack_number || row.type_of_forage) : row.type_crop) || '—';
+
+  const handleDriverChange = (e) => {
+    const { name, value } = e.target;
+    setDriverForm(f => {
+      const next = { ...f, [name]: value };
+      if (['grossWeight', 'tareWeight'].includes(name)) {
+        const gross = parseFloat(name === 'grossWeight' ? value : f.grossWeight) || 0;
+        const tare = parseFloat(name === 'tareWeight' ? value : f.tareWeight) || 0;
+        next.netWeight = gross > 0 && tare > 0 ? String(gross - tare) : f.netWeight;
+      }
+      return next;
+    });
+  };
 
   const handleSave = async () => {
     if (!form.date || !form.customerId) return;
@@ -213,6 +251,34 @@ export default function Loads() {
       if (modal === 'add') await api.loads.create(payload);
       else await api.loads.update(modal.edit.id, payload);
       await loadData(); closeModal();
+    } finally { setSaving(false); }
+  };
+
+  const handleDriverSave = async (row) => {
+    if (!row) return;
+    setSaving(true);
+    const payload = {
+      date: row.date,
+      customer_id: row.customer_id || null,
+      commodity_id: row.commodity_id || null,
+      field_id: row.field_id || null,
+      shipper: row.shipper,
+      type: row.type,
+      bale_count: driverForm.baleCount ? parseInt(driverForm.baleCount) : null,
+      gross_weight: parseFloat(driverForm.grossWeight) || null,
+      tare_weight: parseFloat(driverForm.tareWeight) || null,
+      net_weight: parseFloat(driverForm.netWeight) || null,
+      driver: driverForm.driver,
+      truck_number: driverForm.truckNumber,
+      bol_number: driverForm.bolNumber || null,
+      bol_url: driverForm.bol_url || null,
+      scale_ticket_url: driverForm.scale_ticket_url || null,
+      misc_url: driverForm.misc_url || null,
+    };
+    try {
+      await api.loads.update(row.id, payload);
+      await loadData();
+      closeDriverUpdate();
     } finally { setSaving(false); }
   };
 
@@ -362,7 +428,7 @@ export default function Loads() {
                               <button
                                 className="text-green-500 hover:text-green-400 transition-colors"
                                 title="Complete this load"
-                                onClick={(e) => { e.stopPropagation(); openEdit(row); }}
+                                onClick={(e) => { e.stopPropagation(); role === 'trucker' ? openDriverUpdate(row) : openEdit(row); }}
                               >
                                 <CheckCircle size={16} />
                               </button>
@@ -576,6 +642,81 @@ export default function Loads() {
         </Modal>
       )}
 
+      {driverUpdate && (
+        <Modal title="Driver Update" onClose={closeDriverUpdate} wide>
+          <div className="space-y-4">
+            <div className="text-xs text-slate-500 bg-slate-800/50 rounded-lg px-3 py-2 border border-slate-700">
+              Update the delivery details that the driver can complete.
+            </div>
+
+            {driverUpdate.type === 'Forage' && (
+              <div>
+                <label className="label">Bale Count</label>
+                <input className="input" type="number" name="baleCount" value={driverForm.baleCount} onChange={handleDriverChange} placeholder="24" />
+              </div>
+            )}
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="label">Gross Weight (lbs)</label>
+                <input className="input" type="number" name="grossWeight" value={driverForm.grossWeight} onChange={handleDriverChange} placeholder="54000" />
+              </div>
+              <div>
+                <label className="label">Tare Weight (lbs)</label>
+                <input className="input" type="number" name="tareWeight" value={driverForm.tareWeight} onChange={handleDriverChange} placeholder="14000" />
+              </div>
+              <div>
+                <label className="label">Net Weight (auto)</label>
+                <input className="input font-mono bg-slate-700" type="number" name="netWeight" value={driverForm.netWeight} onChange={handleDriverChange} placeholder="40000" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="label">Driver</label>
+                <input className="input" name="driver" value={driverForm.driver} onChange={handleDriverChange} placeholder="Driver name" />
+              </div>
+              <div>
+                <label className="label">Truck #</label>
+                <input className="input" name="truckNumber" value={driverForm.truckNumber} onChange={handleDriverChange} placeholder="T-44" />
+              </div>
+              <div>
+                <label className="label">BOL #</label>
+                <input className="input" name="bolNumber" value={driverForm.bolNumber} onChange={handleDriverChange} placeholder="BOL-1234" />
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-800">
+              <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Paperwork</div>
+              <div className="grid grid-cols-3 gap-3">
+                <ImageUpload
+                  label="BOL"
+                  value={driverForm.bol_url}
+                  onChange={url => setDriverForm(f => ({ ...f, bol_url: url }))}
+                />
+                <ImageUpload
+                  label="Scale Ticket"
+                  value={driverForm.scale_ticket_url}
+                  onChange={url => setDriverForm(f => ({ ...f, scale_ticket_url: url }))}
+                />
+                <ImageUpload
+                  label="Misc Paperwork"
+                  value={driverForm.misc_url}
+                  onChange={url => setDriverForm(f => ({ ...f, misc_url: url }))}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button className="btn-primary flex-1 justify-center" onClick={() => handleDriverSave(driverUpdate)} disabled={saving}>
+                {saving ? 'Saving…' : 'Save Driver Update'}
+              </button>
+              <button className="btn-secondary" onClick={closeDriverUpdate}>Cancel</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       {viewRow && (
         <Modal title={`Load — ${formatDate(viewRow.date)}`} onClose={() => setViewRow(null)} wide>
           <div className="space-y-4">
@@ -620,9 +761,15 @@ export default function Loads() {
             )}
 
             <div className="flex gap-3 pt-2">
-              <button className="btn-primary flex-1 justify-center" onClick={() => { openEdit(viewRow); setViewRow(null); }}>
-                <Pencil size={13} /> Edit
-              </button>
+              {role === 'trucker' ? (
+                <button className="btn-primary flex-1 justify-center" onClick={() => openDriverUpdate(viewRow)}>
+                  <Pencil size={13} /> Driver Update
+                </button>
+              ) : (
+                <button className="btn-primary flex-1 justify-center" onClick={() => { openEdit(viewRow); setViewRow(null); }}>
+                  <Pencil size={13} /> Edit
+                </button>
+              )}
               {isAdmin && (
                 <button className="btn-danger flex-1 justify-center" onClick={() => handleDelete(viewRow.id)}>
                   <Trash2 size={13} /> Delete
