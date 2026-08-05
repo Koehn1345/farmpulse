@@ -50,8 +50,8 @@ function OrgGate({ children }) {
         </div>
         <OrganizationList
           hidePersonal
-          afterSelectOrganizationUrl="/"
-          afterCreateOrganizationUrl="/"
+          afterSelectOrganizationUrl="https://farmpulse-production-6110.up.railway.app"
+          afterCreateOrganizationUrl="https://farmpulse-production-6110.up.railway.app"
         />
       </div>
     );
@@ -241,7 +241,7 @@ export default function App() {
               <h1 className="text-5xl font-display text-soil-400 mb-3">FarmPulse</h1>
               <p className="text-slate-400">Agricultural operations management</p>
             </div>
-            <SignIn routing="hash" afterSignInUrl="/" />
+            <SignIn routing="hash" afterSignInUrl="https://farmpulse-production-6110.up.railway.app" />
           </div>
         </SignedOut>
         <SignedIn>
