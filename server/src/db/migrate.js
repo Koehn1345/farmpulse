@@ -171,6 +171,7 @@ CREATE TABLE IF NOT EXISTS fuel_entries (
   date DATE NOT NULL,
   vehicle_id UUID REFERENCES vehicles(id),
   fuel_type TEXT,
+  driver TEXT,
   fuel_location TEXT,
   gallons NUMERIC(10,2),
   logged_by_clerk_id TEXT,

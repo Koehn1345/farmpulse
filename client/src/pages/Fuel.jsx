@@ -8,7 +8,7 @@ import { formatDate } from '../lib/format.js';
 
 const FUEL_TYPES = ['On Road Diesel', 'Off Road Diesel', 'Gasolene'];
 
-const emptyEntry = { date: '', vehicle_id: '', fuel_type: 'On Road Diesel', fuel_location: '', gallons: '' };
+const emptyEntry = { date: '', vehicle_id: '', fuel_type: 'On Road Diesel', driver: '', fuel_location: '', gallons: '' };
 const emptyVehicle = { name_number: '', make: '', fuel_type: 'On Road Diesel' };
 
 function QuickAddVehicle({ onSave, onCancel }) {
@@ -48,6 +48,7 @@ export default function Fuel() {
   const [viewRow, setViewRow] = useState(null);
   const [quickAddVehicle, setQuickAddVehicle] = useState(false);
   const [addingLocation, setAddingLocation] = useState(false);
+  const [addingDriver, setAddingDriver] = useState(false);
   const [filterVehicle, setFilterVehicle] = useState('All');
   const [filterFuelType, setFilterFuelType] = useState('All');
   const [dateFrom, setDateFrom] = useState('');
@@ -67,11 +68,13 @@ export default function Fuel() {
   useEffect(() => { load(); }, []);
 
   const locations = [...new Set(rows.filter(r => r.fuel_location).map(r => r.fuel_location))].sort();
+  const drivers = [...new Set(rows.filter(r => r.driver).map(r => r.driver))].sort();
 
   const openAdd = () => {
     setForm({ ...emptyEntry, date: new Date().toISOString().slice(0, 10) });
     setQuickAddVehicle(false);
     setAddingLocation(false);
+    setAddingDriver(false);
     setModal('add');
   };
   const openEdit = (row) => {
@@ -79,14 +82,16 @@ export default function Fuel() {
       date: row.date ? row.date.slice(0, 10) : '',
       vehicle_id: row.vehicle_id || '',
       fuel_type: row.fuel_type || 'On Road Diesel',
+      driver: row.driver || '',
       fuel_location: row.fuel_location || '',
       gallons: row.gallons ?? '',
     });
     setQuickAddVehicle(false);
     setAddingLocation(false);
+    setAddingDriver(false);
     setModal({ edit: row });
   };
-  const closeModal = () => { setModal(null); setQuickAddVehicle(false); setAddingLocation(false); };
+  const closeModal = () => { setModal(null); setQuickAddVehicle(false); setAddingLocation(false); setAddingDriver(false); };
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm(f => {
@@ -112,6 +117,7 @@ export default function Fuel() {
       date: form.date,
       vehicle_id: form.vehicle_id,
       fuel_type: form.fuel_type,
+      driver: form.driver || null,
       fuel_location: form.fuel_location || null,
       gallons: parseFloat(form.gallons) || null,
     };
@@ -151,7 +157,7 @@ export default function Fuel() {
   const totalGallons = Object.values(gallonsByType).reduce((s, v) => s + v, 0);
 
   const downloadCSV = () => {
-    const headers = ['Date', 'Vehicle', 'Fuel Type', 'Location', 'Gallons'];
+    const headers = ['Date', 'Vehicle', 'Fuel Type', 'Driver', 'Location', 'Gallons'];
     const escape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const lines = [
       headers.join(','),
@@ -159,6 +165,7 @@ export default function Fuel() {
         r.date ? r.date.slice(0, 10) : '',
         r.vehicle_name || '',
         r.fuel_type || '',
+        r.driver || '',
         r.fuel_location || '',
         r.gallons ?? '',
       ].map(escape).join(',')),
@@ -245,7 +252,7 @@ export default function Fuel() {
             <table className="w-full text-sm whitespace-nowrap">
               <thead>
                 <tr className="border-b border-slate-800">
-                  {['Date', 'Vehicle', 'Fuel Type', 'Location', 'Gallons'].map(h => (
+                  {['Date', 'Vehicle', 'Fuel Type', 'Driver', 'Location', 'Gallons'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -259,12 +266,13 @@ export default function Fuel() {
                       {row.vehicle_name || '—'}
                     </td>
                     <td className="px-4 py-3 text-slate-400 text-xs">{row.fuel_type || '—'}</td>
+                    <td className="px-4 py-3 text-slate-400 text-xs">{row.driver || '—'}</td>
                     <td className="px-4 py-3 text-slate-400 text-xs">{row.fuel_location || '—'}</td>
                     <td className="px-4 py-3 font-mono text-slate-100">{row.gallons ? parseFloat(row.gallons).toFixed(1) : '—'}</td>
                   </tr>
                 ))}
                 {sortedRows.length === 0 && (
-                  <tr><td colSpan={5} className="px-4 py-12 text-center text-slate-500">No fuel entries logged yet.</td></tr>
+                  <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-500">No fuel entries logged yet.</td></tr>
                 )}
               </tbody>
             </table>
@@ -303,6 +311,33 @@ export default function Fuel() {
               <select className="input" name="fuel_type" value={form.fuel_type} onChange={handleChange}>
                 {FUEL_TYPES.map(t => <option key={t}>{t}</option>)}
               </select>
+            </div>
+
+            <div>
+              <label className="label">Driver</label>
+              {addingDriver ? (
+                <div className="space-y-1">
+                  <input className="input" name="driver" value={form.driver} onChange={handleChange} placeholder="Driver name" autoFocus />
+                  {drivers.length > 0 && (
+                    <button type="button" className="text-xs text-soil-400 hover:text-soil-300" onClick={() => { setAddingDriver(false); setForm(f => ({ ...f, driver: '' })); }}>
+                      Choose existing
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <select
+                  className="input"
+                  value={form.driver}
+                  onChange={e => {
+                    if (e.target.value === '__new__') { setAddingDriver(true); setForm(f => ({ ...f, driver: '' })); }
+                    else setForm(f => ({ ...f, driver: e.target.value }));
+                  }}
+                >
+                  <option value="">Select driver…</option>
+                  {drivers.map(d => <option key={d} value={d}>{d}</option>)}
+                  <option value="__new__">+ Add new driver…</option>
+                </select>
+              )}
             </div>
 
             <div>
@@ -353,6 +388,7 @@ export default function Fuel() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div><div className="label">Vehicle</div><div className="text-slate-100">{viewRow.vehicle_name || '—'}</div></div>
               <div><div className="label">Fuel Type</div><div className="text-slate-100">{viewRow.fuel_type || '—'}</div></div>
+              <div><div className="label">Driver</div><div className="text-slate-100">{viewRow.driver || '—'}</div></div>
               <div><div className="label">Location</div><div className="text-slate-100">{viewRow.fuel_location || '—'}</div></div>
               <div><div className="label">Gallons</div><div className="font-mono text-slate-100">{viewRow.gallons ? parseFloat(viewRow.gallons).toFixed(1) : '—'}</div></div>
             </div>

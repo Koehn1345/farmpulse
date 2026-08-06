@@ -26,9 +26,9 @@ router.post('/', async (req, res) => {
   try {
     const b = req.body;
     const { rows } = await pool.query(
-      `INSERT INTO fuel_entries (farm_id, date, vehicle_id, fuel_type, fuel_location, gallons, logged_by_clerk_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [req.farmId, b.date, b.vehicle_id || null, b.fuel_type || null, b.fuel_location || null, b.gallons || null, req.clerkUserId]
+      `INSERT INTO fuel_entries (farm_id, date, vehicle_id, fuel_type, driver, fuel_location, gallons, logged_by_clerk_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [req.farmId, b.date, b.vehicle_id || null, b.fuel_type || null, b.driver || null, b.fuel_location || null, b.gallons || null, req.clerkUserId]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -42,9 +42,9 @@ router.put('/:id', async (req, res) => {
   try {
     const b = req.body;
     const { rows } = await pool.query(
-      `UPDATE fuel_entries SET date=$1, vehicle_id=$2, fuel_type=$3, fuel_location=$4, gallons=$5
-       WHERE id=$6 AND farm_id=$7 AND deleted_at IS NULL RETURNING *`,
-      [b.date, b.vehicle_id || null, b.fuel_type || null, b.fuel_location || null, b.gallons || null, req.params.id, req.farmId]
+      `UPDATE fuel_entries SET date=$1, vehicle_id=$2, fuel_type=$3, driver=$4, fuel_location=$5, gallons=$6
+       WHERE id=$7 AND farm_id=$8 AND deleted_at IS NULL RETURNING *`,
+      [b.date, b.vehicle_id || null, b.fuel_type || null, b.driver || null, b.fuel_location || null, b.gallons || null, req.params.id, req.farmId]
     );
     if (!rows.length) return res.status(404).json({ error: 'Not found' });
     res.json(rows[0]);
