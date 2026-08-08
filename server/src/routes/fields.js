@@ -32,6 +32,16 @@ router.put('/:id', requireAdmin, async (req, res) => {
   res.json(rows[0]);
 });
 
+router.put('/:id/active', requireAdmin, async (req, res) => {
+  const { is_active } = req.body;
+  const { rows } = await pool.query(
+    'UPDATE fields SET is_active=$1 WHERE id=$2 AND farm_id=$3 AND deleted_at IS NULL RETURNING *',
+    [!!is_active, req.params.id, req.farmId]
+  );
+  if (!rows.length) return res.status(404).json({ error: 'Not found' });
+  res.json(rows[0]);
+});
+
 router.delete('/:id', requireAdmin, async (req, res) => {
   await pool.query(
     'UPDATE fields SET deleted_at=NOW() WHERE id=$1 AND farm_id=$2',

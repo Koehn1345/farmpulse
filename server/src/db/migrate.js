@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS fields (
   google_pin TEXT,
   ownership TEXT,
   lease_payment NUMERIC(10,2),
+  is_active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   deleted_at TIMESTAMPTZ
 );

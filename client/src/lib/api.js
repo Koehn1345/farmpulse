@@ -47,6 +47,7 @@ export const api = {
     list: () => req('GET', '/fields'),
     create: (b) => req('POST', '/fields', b),
     update: (id, b) => req('PUT', `/fields/${id}`, b),
+    setActive: (id, is_active) => req('PUT', `/fields/${id}/active`, { is_active }),
     delete: (id) => req('DELETE', `/fields/${id}`),
   },
   cropHistory: {

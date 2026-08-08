@@ -4,7 +4,7 @@ import { api } from '../lib/api.js';
 import Modal from '../components/Modal.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import { useFarm } from '../context/FarmContext.jsx';
-import { Plus, Pencil, Trash2, MapPin, Ruler } from 'lucide-react';
+import { Plus, Pencil, Trash2, MapPin, Ruler, Power } from 'lucide-react';
 
 const emptyCrop = { year: String(new Date().getFullYear()), crop: '', notes: '' };
 
@@ -26,6 +26,7 @@ export default function Fields() {
   const [cropForm, setCropForm] = useState(null);
   const [savingCrop, setSavingCrop] = useState(false);
   const [loadError, setLoadError] = useState(null);
+  const [statusTab, setStatusTab] = useState('active');
 
   const load = async () => {
     setLoadError(null);
@@ -91,13 +92,22 @@ export default function Fields() {
     setViewField(null);
   };
 
-  const totalAcres = rows.reduce((s, r) => s + (parseFloat(r.acres) || 0), 0);
+  const toggleActive = async (row) => {
+    const updated = await api.fields.setActive(row.id, !row.is_active);
+    setRows(r => r.map(x => x.id === row.id ? updated : x));
+    setViewField(v => v && v.id === row.id ? updated : v);
+  };
+
+  const activeRows = rows.filter(r => r.is_active !== false);
+  const inactiveRows = rows.filter(r => r.is_active === false);
+  const displayedRows = statusTab === 'active' ? activeRows : inactiveRows;
+  const totalAcres = displayedRows.reduce((s, r) => s + (parseFloat(r.acres) || 0), 0);
 
   return (
     <div className="p-6 lg:p-8 max-w-6xl mx-auto">
       <PageHeader
         title="Fields"
-        subtitle={`${rows.length} fields · ${totalAcres.toFixed(1)} total acres`}
+        subtitle={`${displayedRows.length} fields · ${totalAcres.toFixed(1)} total acres`}
         action={
           isAdmin && (
             <button className="btn-primary" onClick={openAdd}>
@@ -106,6 +116,27 @@ export default function Fields() {
           )
         }
       />
+
+      {!loading && !loadError && (
+        <div className="flex items-center gap-2 mb-4">
+          <button
+            onClick={() => setStatusTab('active')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              statusTab === 'active' ? 'bg-soil-500/30 text-soil-300 border border-soil-600' : 'text-slate-400 border border-slate-800 hover:border-slate-700'
+            }`}
+          >
+            Active ({activeRows.length})
+          </button>
+          <button
+            onClick={() => setStatusTab('inactive')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              statusTab === 'inactive' ? 'bg-soil-500/30 text-soil-300 border border-soil-600' : 'text-slate-400 border border-slate-800 hover:border-slate-700'
+            }`}
+          >
+            Inactive ({inactiveRows.length})
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <div className="text-slate-500 text-sm py-8 text-center">Loading…</div>
@@ -128,7 +159,7 @@ export default function Fields() {
               </tr>
             </thead>
             <tbody>
-              {rows.map(row => (
+              {displayedRows.map(row => (
                 <tr key={row.id} className="table-row cursor-pointer" onClick={() => { setViewField(row); setYearFilter('All'); setCropForm(null); }}>
                   <td className="px-6 py-4 font-medium text-slate-100 flex items-center gap-2">
                     <MapPin size={13} className="text-soil-400 shrink-0" />
@@ -150,8 +181,10 @@ export default function Fields() {
                   </td>
                 </tr>
               ))}
-              {rows.length === 0 && (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-500">No fields yet. Add your first one.</td></tr>
+              {displayedRows.length === 0 && (
+                <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                  {statusTab === 'active' ? 'No active fields yet. Add your first one.' : 'No inactive fields.'}
+                </td></tr>
               )}
             </tbody>
           </table>
@@ -230,6 +263,13 @@ export default function Fields() {
               </div>
               {isAdmin && (
                 <div className="flex gap-2">
+                  <button
+                    className="btn-secondary !px-2 !py-1"
+                    onClick={() => toggleActive(viewField)}
+                    title={viewField.is_active === false ? 'Reactivate field' : 'Deactivate field'}
+                  >
+                    <Power size={13} className={viewField.is_active === false ? 'text-emerald-400' : 'text-amber-400'} />
+                  </button>
                   <button className="btn-secondary !px-2 !py-1" onClick={() => { openEdit(viewField); setViewField(null); }}><Pencil size={13} /></button>
                   <button className="btn-danger" onClick={() => handleDelete(viewField.id)}><Trash2 size={13} /></button>
                 </div>
