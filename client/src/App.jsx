@@ -11,7 +11,7 @@ import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-do
 import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, Truck, Wheat, Users, TrendingUp, TrendingDown,
-  MapPin, Menu, X, Settings, Users2, LogOut, Car, Fuel as FuelIcon
+  MapPin, Menu, X, Settings as SettingsIcon, Users2, LogOut, Car, Fuel as FuelIcon
 } from 'lucide-react';
 import { setTokenGetter } from './lib/api.js';
 import { FarmProvider, useFarm } from './context/FarmContext.jsx';
@@ -25,6 +25,7 @@ import Fields from './pages/Fields.jsx';
 import Vehicles from './pages/Vehicles.jsx';
 import Fuel from './pages/Fuel.jsx';
 import Team from './pages/Team.jsx';
+import Settings from './pages/Settings.jsx';
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
@@ -82,6 +83,7 @@ const adminNav = [
   { to: '/customers', label: 'Customers', icon: Users },
   { to: '/vehicles', label: 'Vehicles', icon: Car },
   { to: '/team', label: 'Team', icon: Users2 },
+  { to: '/settings', label: 'Settings', icon: SettingsIcon },
 ];
 
 const employeeNav = [
@@ -206,6 +208,7 @@ function AppShell() {
                 <Route path="/vehicles" element={<Vehicles />} />
                 <Route path="/fuel" element={<Fuel />} />
                 <Route path="/team" element={<Team />} />
+                <Route path="/settings" element={<Settings />} />
               </>
             ) : role === 'employee' ? (
               <>

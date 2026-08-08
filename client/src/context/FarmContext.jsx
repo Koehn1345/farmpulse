@@ -26,8 +26,14 @@ export function FarmProvider({ children }) {
   const trialValid = farm?.billing_status === 'trial' && farm?.trial_ends_at && new Date(farm.trial_ends_at) > new Date();
   const isTrialExpired = !!farm && !isActive && !trialValid;
 
+  const updateFarm = async (updates) => {
+    const updated = await api.farm.update(updates);
+    setFarm(f => ({ ...f, ...updated }));
+    return updated;
+  };
+
   return (
-    <FarmContext.Provider value={{ farm, role, loading, isAdmin: role === 'admin', isTrialExpired }}>
+    <FarmContext.Provider value={{ farm, role, loading, isAdmin: role === 'admin', isTrialExpired, updateFarm }}>
       {children}
     </FarmContext.Provider>
   );
