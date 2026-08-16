@@ -31,10 +31,10 @@ export const requireFarm = async (req, res, next) => {
     );
 
     if (farmResult.rows.length === 0) {
-      // Auto-provision farm on first access - starts a 14-day trial
+      // Auto-provision farm on first access - starts a 60-day trial
       farmResult = await pool.query(
         `INSERT INTO farms (clerk_org_id, name, trial_ends_at)
-         VALUES ($1, $2, NOW() + INTERVAL '14 days') RETURNING *`,
+         VALUES ($1, $2, NOW() + INTERVAL '60 days') RETURNING *`,
         [clerkOrgId, 'My Farm']
       );
     }

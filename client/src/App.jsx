@@ -164,7 +164,7 @@ function TrialExpiredScreen({ isAdmin }) {
         <h1 className="text-3xl font-display text-soil-400 mb-3">Your trial has ended</h1>
         <p className="text-slate-400 text-sm mb-6">
           {isAdmin
-            ? "Your 14-day free trial of FarmPulse has ended. Subscribe to keep using your farm's data."
+            ? "Your 60-day free trial of FarmPulse has ended. Subscribe to keep using your farm's data."
             : 'Your farm\'s free trial has ended. Ask your farm admin to subscribe to keep using FarmPulse.'}
         </p>
         {isAdmin && (
