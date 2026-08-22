@@ -61,6 +61,9 @@ export const api = {
     create: (b) => req('POST', '/commodities', b),
     update: (id, b) => req('PUT', `/commodities/${id}`, b),
     delete: (id) => req('DELETE', `/commodities/${id}`),
+    setPrice: (id, b) => req('POST', `/commodities/${id}/price`, b),
+    priceHistory: (id) => req('GET', `/commodities/${id}/price-history`),
+    setClosed: (id, is_closed) => req('PUT', `/commodities/${id}/close`, { is_closed }),
   },
   loads: {
     list: () => req('GET', '/loads'),

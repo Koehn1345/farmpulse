@@ -9,14 +9,10 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
   try {
     const fid = req.farmId;
 
-    // Projected income is the commodity's full estimated tonnage x its
-    // price per ton - it reflects what the whole stack/crop should be
-    // worth, not what's accrued so far from loads actually hauled.
-    const estTonsExpr = `(CASE WHEN c.type = 'Forage' THEN c.estimated_stack_tonnage ELSE c.estimated_total_tons END)`;
-
-    const [incomeRes, expenseRes, loadsRes, recentRes, fieldIncomeRes, inventoryRes] = await Promise.all([
-      pool.query(`SELECT COALESCE(SUM(${estTonsExpr} * c.price_per_ton), 0) as total
-        FROM commodities c WHERE c.farm_id=$1 AND c.deleted_at IS NULL`, [fid]),
+    const [incomeRes, expenseRes, loadsRes, recentRes, fieldIncomeRes, inventoryRes, inventoryValueRes] = await Promise.all([
+      // Realized income - actual money received, one row per hauled load
+      // (plus any manual entries). This is real, not projected.
+      pool.query('SELECT COALESCE(SUM(amount),0) as total FROM income WHERE farm_id=$1 AND deleted_at IS NULL', [fid]),
       pool.query('SELECT COALESCE(SUM(amount),0) as total FROM expenses WHERE farm_id=$1 AND deleted_at IS NULL', [fid]),
       pool.query(`SELECT
         COUNT(*) as total,
@@ -30,9 +26,9 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
         LEFT JOIN fields f ON f.id = l.field_id
         WHERE l.farm_id=$1 AND l.deleted_at IS NULL
         ORDER BY l.date DESC, l.created_at DESC LIMIT 5`, [fid]),
-      pool.query(`SELECT f.field_name, COALESCE(SUM(${estTonsExpr} * c.price_per_ton), 0) as value
-        FROM commodities c JOIN fields f ON f.id = c.field_id
-        WHERE c.farm_id=$1 AND c.deleted_at IS NULL
+      pool.query(`SELECT f.field_name, COALESCE(SUM(i.amount),0) as value
+        FROM income i JOIN fields f ON f.id = i.field_id
+        WHERE i.farm_id=$1 AND i.deleted_at IS NULL
         GROUP BY f.field_name ORDER BY value DESC`, [fid]),
       // Per-commodity estimated tonnage and tons already hauled against it,
       // so remaining inventory (estimated - hauled) can be grouped by
@@ -46,11 +42,19 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
           FROM loads WHERE farm_id=$1 AND deleted_at IS NULL AND commodity_id IS NOT NULL
           GROUP BY commodity_id
         ) lh ON lh.commodity_id = c.id
-        WHERE c.farm_id=$1 AND c.deleted_at IS NULL`, [fid]),
+        WHERE c.farm_id=$1 AND c.deleted_at IS NULL AND c.is_closed = false`, [fid]),
+      // Contracted inventory value - the estimated_value (server-computed
+      // per-commodity, priced against history) of stacks/crops still open.
+      // Deliberately excludes closed stacks and is never combined with
+      // realized income into one profit figure - it's inventory on hand,
+      // not cash received.
+      pool.query(`SELECT COALESCE(SUM(estimated_value), 0) as total
+        FROM commodities WHERE farm_id=$1 AND deleted_at IS NULL AND is_closed = false`, [fid]),
     ]);
 
     const totalIncome = parseFloat(incomeRes.rows[0].total);
     const totalExpenses = parseFloat(expenseRes.rows[0].total);
+    const contractedInventoryValue = parseFloat(inventoryValueRes.rows[0].total);
     const loads = loadsRes.rows[0];
 
     const withRemaining = inventoryRes.rows.map(r => {
@@ -78,6 +82,7 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
       totalIncome,
       totalExpenses,
       netProfit: totalIncome - totalExpenses,
+      contractedInventoryValue,
       totalLoads: parseInt(loads.total),
       forageLoads: parseInt(loads.forage),
       grainLoads: parseInt(loads.grain),

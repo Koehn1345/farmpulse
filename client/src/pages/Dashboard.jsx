@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { DollarSign, Truck, Weight, TrendingUp } from 'lucide-react';
+import { DollarSign, Truck, Weight, TrendingUp, Package } from 'lucide-react';
 
 const fmt = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 const fmtNum = (n) => new Intl.NumberFormat('en-US').format(n);
@@ -81,8 +81,18 @@ export default function Dashboard() {
         <p className="text-slate-400 mt-1 text-sm">Season overview and recent activity</p>
       </div>
 
-      {/* Tons left in inventory */}
+      {/* Inventory on hand - deliberately separate from realized income below */}
       <div className="mb-8">
+        <div className="mb-4 p-4 bg-blue-900/20 border border-blue-800/50 rounded-xl flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-blue-900/50 text-blue-400"><Package size={16} /></div>
+            <div>
+              <div className="text-sm text-blue-300 font-medium">Contracted Inventory Value</div>
+              <div className="text-xs text-slate-500">Open stacks/crops only, priced at their current contracted rate — not cash received.</div>
+            </div>
+          </div>
+          <span className="text-2xl font-semibold text-blue-300">{fmt(data.contractedInventoryValue)}</span>
+        </div>
         <h2 className="text-sm font-semibold text-slate-300 mb-1">Tons Left in Inventory</h2>
         <p className="text-xs text-slate-500 mb-4">Estimated tonnage not yet hauled, by cutting/type/commodity.</p>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -95,9 +105,9 @@ export default function Dashboard() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard
-          label="Projected Income"
+          label="Realized Income"
           value={fmt(data.totalIncome)}
-          sub="Est. tons × price/ton"
+          sub="Money received this season"
           icon={DollarSign}
           accent="bg-emerald-900/50 text-emerald-400"
         />
@@ -127,7 +137,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Income by Field chart */}
         <div className="card lg:col-span-2">
-          <h2 className="text-sm font-semibold text-slate-300 mb-4">Projected Income by Field</h2>
+          <h2 className="text-sm font-semibold text-slate-300 mb-4">Realized Income by Field</h2>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={data.incomeByField} barSize={32}>
               <XAxis dataKey="name" tick={{ fill: '#a1a1aa', fontSize: 12 }} axisLine={false} tickLine={false} />
@@ -145,10 +155,10 @@ export default function Dashboard() {
         {/* P&L Summary */}
         <div className="card">
           <h2 className="text-sm font-semibold text-slate-300 mb-1">P&amp;L Summary</h2>
-          <p className="text-xs text-slate-500 mb-4">Income is projected from estimated tonnage × price/ton, not tied to loads hauled.</p>
+          <p className="text-xs text-slate-500 mb-4">Realized income vs. actual expenses — money in and out, not inventory on hand.</p>
           <div className="space-y-3">
             <div className="flex justify-between items-center py-2 border-b border-slate-800">
-              <span className="text-sm text-slate-400">Projected Income</span>
+              <span className="text-sm text-slate-400">Realized Income</span>
               <span className="text-sm font-medium text-emerald-400">{fmt(data.totalIncome)}</span>
             </div>
             <div className="flex justify-between items-center py-2 border-b border-slate-800">
@@ -200,7 +210,7 @@ export default function Dashboard() {
                       {typeLabel(load.type)}
                     </span>
                   </td>
-                  <td className="py-3 text-right text-slate-200 font-mono">{fmtNum(load.netWeight)}</td>
+                  <td className="py-3 text-right text-slate-200 font-mono">{load.net_weight != null ? fmtNum(load.net_weight) : '—'}</td>
                 </tr>
               ))}
             </tbody>

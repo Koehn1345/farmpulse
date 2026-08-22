@@ -88,8 +88,25 @@ CREATE TABLE IF NOT EXISTS commodities (
   estimated_total_tons NUMERIC(10,2),
   actual_tons NUMERIC(10,2),
   actual_tons_per_acre NUMERIC(10,3),
+  -- Contracted value tracking
+  buyer_customer_id UUID REFERENCES customers(id),
+  estimated_value NUMERIC(12,2),
+  actual_value NUMERIC(12,2),
+  is_closed BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   deleted_at TIMESTAMPTZ
+);
+
+-- Forward-only price/buyer history for commodities
+CREATE TABLE IF NOT EXISTS commodity_price_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  commodity_id UUID NOT NULL REFERENCES commodities(id) ON DELETE CASCADE,
+  price_per_ton NUMERIC(10,2) NOT NULL,
+  buyer_customer_id UUID REFERENCES customers(id),
+  effective_date DATE NOT NULL,
+  note TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  created_by_clerk_id TEXT
 );
 
 -- Loads
@@ -193,6 +210,7 @@ CREATE INDEX IF NOT EXISTS idx_fuel_entries_vehicle ON fuel_entries(vehicle_id) 
 CREATE INDEX IF NOT EXISTS idx_fuel_entries_date ON fuel_entries(farm_id, date DESC) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_customers_farm ON customers(farm_id) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_commodities_farm ON commodities(farm_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_commodity_price_history_commodity ON commodity_price_history(commodity_id, effective_date DESC);
 CREATE INDEX IF NOT EXISTS idx_loads_farm ON loads(farm_id) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_loads_date ON loads(farm_id, date DESC) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_income_farm ON income(farm_id) WHERE deleted_at IS NULL;

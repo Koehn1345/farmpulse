@@ -3,6 +3,7 @@ import pool from '../db/pool.js';
 import { requireAdmin } from '../middleware/auth.js';
 import { syncLoadIncome } from '../db/incomeSync.js';
 import { syncLoadExpense } from '../db/expenseSync.js';
+import { syncCommodityValuation } from '../db/commodityValuation.js';
 
 const router = Router();
 
@@ -84,7 +85,7 @@ router.post('/', async (req, res) => {
         [b.commodity_id]
       );
     }
-    await Promise.all([syncLoadIncome(rows[0]), syncLoadExpense(rows[0])]);
+    await Promise.all([syncLoadIncome(rows[0]), syncLoadExpense(rows[0]), syncCommodityValuation(rows[0].commodity_id)]);
     res.status(201).json(forRole(rows[0], req.userRole));
   } catch (err) {
     console.error(err);
@@ -97,6 +98,10 @@ router.put('/:id', async (req, res) => {
   try {
     const b = req.body;
     const isAdmin = req.userRole === 'admin';
+    const { rows: beforeRows } = await pool.query(
+      'SELECT commodity_id FROM loads WHERE id=$1 AND farm_id=$2', [req.params.id, req.farmId]
+    );
+    const oldCommodityId = beforeRows[0]?.commodity_id;
     const setParts = [
       'date=$1', 'customer_id=$2', 'commodity_id=$3', 'field_id=$4',
       'shipper=$5', 'type=$6', 'bale_count=$7', 'gross_weight=$8',
@@ -137,7 +142,14 @@ router.put('/:id', async (req, res) => {
       params
     );
     if (!rows.length) return res.status(404).json({ error: 'Not found' });
-    await Promise.all([syncLoadIncome(rows[0]), syncLoadExpense(rows[0])]);
+    // A load can move between commodities - resync both the old and new
+    // one so neither is left with stale actual/estimated value.
+    const commodityIds = new Set([oldCommodityId, rows[0].commodity_id].filter(Boolean));
+    await Promise.all([
+      syncLoadIncome(rows[0]),
+      syncLoadExpense(rows[0]),
+      ...[...commodityIds].map(id => syncCommodityValuation(id)),
+    ]);
     res.json(forRole(rows[0], req.userRole));
   } catch (err) {
     console.error(err);
@@ -147,8 +159,8 @@ router.put('/:id', async (req, res) => {
 
 router.delete('/:id', requireAdmin, async (req, res) => {
   try {
-    await pool.query(
-      'UPDATE loads SET deleted_at=NOW() WHERE id=$1 AND farm_id=$2',
+    const { rows } = await pool.query(
+      'UPDATE loads SET deleted_at=NOW() WHERE id=$1 AND farm_id=$2 RETURNING commodity_id',
       [req.params.id, req.farmId]
     );
     await pool.query(
@@ -159,6 +171,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
       'UPDATE expenses SET deleted_at=NOW() WHERE load_id=$1 AND deleted_at IS NULL',
       [req.params.id]
     );
+    if (rows[0]?.commodity_id) await syncCommodityValuation(rows[0].commodity_id);
     res.json({ success: true });
   } catch (err) {
     console.error(err);
