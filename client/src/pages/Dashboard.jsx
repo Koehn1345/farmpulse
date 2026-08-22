@@ -169,10 +169,10 @@ export default function Dashboard() {
         <h2 className="text-sm font-semibold text-slate-300 mb-1">Tons Left in Inventory</h2>
         <p className="text-xs text-slate-500 mb-4">Estimated tonnage not yet hauled, by cutting/type/commodity.</p>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <TonsPillGrid title="Left by Cutting" data={data.tonsByCutting} />
-          <TonsPillGrid title="Left by Type" data={data.tonsByType} />
-          <TonsPillGrid title="Left by Stacks" data={data.tonsByStackCommodity} />
-          <TonsPillGrid title="Left by Grain" data={data.tonsByGrainCommodity} />
+          <TonsPillGrid title="Inventory By Cutting" data={data.tonsByCutting} />
+          <TonsPillGrid title="Inventory By Type" data={data.tonsByType} />
+          <TonsPillGrid title="Inventory By Commodity — Stacks" data={data.tonsByStackCommodity} />
+          <TonsPillGrid title="Inventory By Commodity — Grain" data={data.tonsByGrainCommodity} />
         </div>
       </div>
 
