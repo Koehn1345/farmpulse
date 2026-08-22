@@ -71,8 +71,8 @@ function QuickAddField({ onSave, onCancel }) {
   );
 }
 
-function QuickAddCommodity({ type, fields, onSave, onCancel }) {
-  const [form, setForm] = useState({ type, field_id: '', type_of_forage: '', cutting: '1st', stack_number: '', bale_count: '', avg_bale_weight_lbs: '', type_crop: '', seed_details: '', estimated_total_tons: '' });
+function QuickAddCommodity({ type, fields, defaultFieldId, onSave, onCancel }) {
+  const [form, setForm] = useState({ type, field_id: defaultFieldId || '', type_of_forage: '', cutting: '1st', stack_number: '', bale_count: '', avg_bale_weight_lbs: '', type_crop: '', seed_details: '', estimated_total_tons: '' });
   const [saving, setSaving] = useState(false);
   const displayType = type === 'Forage' ? 'Stack' : type;
   const handleSave = async () => {
@@ -88,7 +88,7 @@ function QuickAddCommodity({ type, fields, onSave, onCancel }) {
   };
   return (
     <div className="mt-2 p-3 bg-slate-800 rounded-lg border border-slate-700 space-y-2">
-      <div className="text-xs text-slate-400 font-medium">New {displayType} Crop</div>
+      <div className="text-xs text-slate-400 font-medium">New {displayType} Commodity</div>
       <select className="input" value={form.field_id} onChange={e => setForm(f => ({ ...f, field_id: e.target.value }))}>
         <option value="">Field (optional)</option>
         {fields.map(f => <option key={f.id} value={f.id}>{f.field_name}</option>)}
@@ -216,6 +216,10 @@ export default function Loads() {
         const net = parseFloat(next.netWeight) || 0;
         const rate = parseFloat(name === 'freightRate' ? value : f.freightRate) || 0;
         next.grossPay = net > 0 && rate > 0 ? ((net / 2000) * rate).toFixed(2) : f.grossPay;
+      }
+      if (name === 'fieldId') {
+        const selected = commodities.find(c => c.id === f.commodityId);
+        if (selected && selected.field_id !== value) next.commodityId = '';
       }
       return next;
     });
@@ -352,8 +356,10 @@ export default function Loads() {
     return true;
   });
   const sortedRows = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
-  const filteredCommodities = commodities.filter(c => c.type === form.type);
-  const baseHeaders = ['', 'Status', 'Date', 'Customer', 'Field', 'Crop', 'Shipper', 'Driver / Truck', 'Bales', 'BOL #', 'Gross', 'Tare', 'Net (lbs)', 'Tons', 'Type'];
+  // Commodities list is already scoped to non-deleted (active) rows by the
+  // API; once a field is picked, narrow further to crops grown on it.
+  const filteredCommodities = commodities.filter(c => c.type === form.type && (!form.fieldId || c.field_id === form.fieldId));
+  const baseHeaders = ['', 'Status', 'Date', 'Customer', 'Field', 'Commodity', 'Shipper', 'Driver / Truck', 'Bales', 'BOL #', 'Gross', 'Tare', 'Net (lbs)', 'Tons', 'Type'];
   const headers = isAdmin ? [...baseHeaders, 'Rate ($/ton)', 'Gross Pay'] : baseHeaders;
 
   return (
@@ -591,13 +597,13 @@ export default function Loads() {
               )}
             </div>
 
-            {/* Crop with quick-add */}
+            {/* Commodity with quick-add */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="label !mb-0">Crop</label>
+                <label className="label !mb-0">Commodity</label>
                 {quickAdd !== 'commodity' && canManageSupportingRecords && (
                   <button className="text-xs text-soil-400 hover:text-soil-300" onClick={() => setQuickAdd('commodity')}>
-                    + New Crop
+                    + New Commodity
                   </button>
                 )}
               </div>
@@ -611,10 +617,14 @@ export default function Loads() {
                   </option>
                 ))}
               </select>
+              {form.fieldId && filteredCommodities.length === 0 && (
+                <div className="text-xs text-slate-500 mt-1">No active commodities on this field yet.</div>
+              )}
               {quickAdd === 'commodity' && (
                 <QuickAddCommodity
                   type={form.type}
                   fields={fields}
+                  defaultFieldId={form.fieldId}
                   onSave={onCommodityAdded}
                   onCancel={() => setQuickAdd(null)}
                 />
@@ -818,7 +828,7 @@ export default function Loads() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div><div className="label">Customer</div><div className="text-slate-100">{viewRow.customer_name || '—'}</div></div>
               <div><div className="label">Field</div><div className="text-slate-100">{viewRow.field_name || '—'}</div></div>
-              <div><div className="label">Crop</div><div className="text-slate-100">{cropLabel(viewRow)}</div></div>
+              <div><div className="label">Commodity</div><div className="text-slate-100">{cropLabel(viewRow)}</div></div>
               <div><div className="label">Shipper</div><div className="text-slate-100">{viewRow.shipper || '—'}</div></div>
               <div><div className="label">Driver</div><div className="text-slate-100">{viewRow.driver || '—'}</div></div>
               <div><div className="label">Truck #</div><div className="text-slate-100">{viewRow.truck_number || '—'}</div></div>
