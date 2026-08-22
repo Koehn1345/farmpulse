@@ -167,14 +167,15 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Tons Breakdown */}
+      {/* Tons left in inventory */}
       <div className="mb-8">
-        <h2 className="text-sm font-semibold text-slate-300 mb-4">Tons Hauled Breakdown</h2>
+        <h2 className="text-sm font-semibold text-slate-300 mb-1">Tons Left in Inventory</h2>
+        <p className="text-xs text-slate-500 mb-4">Estimated tonnage not yet hauled, by cutting/type/commodity.</p>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <TonsBarChart title="Tons by Cutting" data={data.tonsByCutting} />
-          <TonsBarChart title="Tons by Type" data={data.tonsByType} />
-          <TonsBarChart title="Tons by Commodity — Stacks" data={data.tonsByStackCommodity} />
-          <TonsBarChart title="Tons by Commodity — Grain" data={data.tonsByGrainCommodity} />
+          <TonsBarChart title="Left by Cutting" data={data.tonsByCutting} />
+          <TonsBarChart title="Left by Type" data={data.tonsByType} />
+          <TonsBarChart title="Left by Commodity — Stacks" data={data.tonsByStackCommodity} />
+          <TonsBarChart title="Left by Commodity — Grain" data={data.tonsByGrainCommodity} />
         </div>
       </div>
 

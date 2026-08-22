@@ -14,7 +14,7 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
     // worth, not what's accrued so far from loads actually hauled.
     const estTonsExpr = `(CASE WHEN c.type = 'Forage' THEN c.estimated_stack_tonnage ELSE c.estimated_total_tons END)`;
 
-    const [incomeRes, expenseRes, loadsRes, recentRes, fieldIncomeRes, tonsByCuttingRes, tonsByTypeRes, tonsByStackCommodityRes, tonsByGrainCommodityRes] = await Promise.all([
+    const [incomeRes, expenseRes, loadsRes, recentRes, fieldIncomeRes, inventoryRes] = await Promise.all([
       pool.query(`SELECT COALESCE(SUM(${estTonsExpr} * c.price_per_ton), 0) as total
         FROM commodities c WHERE c.farm_id=$1 AND c.deleted_at IS NULL`, [fid]),
       pool.query('SELECT COALESCE(SUM(amount),0) as total FROM expenses WHERE farm_id=$1 AND deleted_at IS NULL', [fid]),
@@ -34,28 +34,45 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
         FROM commodities c JOIN fields f ON f.id = c.field_id
         WHERE c.farm_id=$1 AND c.deleted_at IS NULL
         GROUP BY f.field_name ORDER BY value DESC`, [fid]),
-      pool.query(`SELECT co.cutting as name, COALESCE(SUM(l.net_weight)/2000, 0) as tons
-        FROM loads l JOIN commodities co ON co.id = l.commodity_id
-        WHERE l.farm_id=$1 AND l.deleted_at IS NULL AND l.type='Forage' AND co.cutting IS NOT NULL
-        GROUP BY co.cutting ORDER BY co.cutting`, [fid]),
-      pool.query(`SELECT co.forage_grade as name, COALESCE(SUM(l.net_weight)/2000, 0) as tons
-        FROM loads l JOIN commodities co ON co.id = l.commodity_id
-        WHERE l.farm_id=$1 AND l.deleted_at IS NULL AND l.type='Forage' AND co.forage_grade IS NOT NULL
-        GROUP BY co.forage_grade ORDER BY tons DESC`, [fid]),
-      pool.query(`SELECT co.type_of_forage as name, COALESCE(SUM(l.net_weight)/2000, 0) as tons
-        FROM loads l JOIN commodities co ON co.id = l.commodity_id
-        WHERE l.farm_id=$1 AND l.deleted_at IS NULL AND l.type='Forage' AND co.type_of_forage IS NOT NULL
-        GROUP BY co.type_of_forage ORDER BY tons DESC`, [fid]),
-      pool.query(`SELECT co.type_crop as name, COALESCE(SUM(l.net_weight)/2000, 0) as tons
-        FROM loads l JOIN commodities co ON co.id = l.commodity_id
-        WHERE l.farm_id=$1 AND l.deleted_at IS NULL AND l.type='Grain' AND co.type_crop IS NOT NULL
-        GROUP BY co.type_crop ORDER BY tons DESC`, [fid]),
+      // Per-commodity estimated tonnage and tons already hauled against it,
+      // so remaining inventory (estimated - hauled) can be grouped by
+      // cutting/type/commodity in JS below.
+      pool.query(`SELECT c.type, c.cutting, c.forage_grade, c.type_of_forage, c.type_crop,
+          c.estimated_stack_tonnage, c.estimated_total_tons,
+          COALESCE(lh.hauled_tons, 0) as hauled_tons
+        FROM commodities c
+        LEFT JOIN (
+          SELECT commodity_id, SUM(net_weight)/2000 as hauled_tons
+          FROM loads WHERE farm_id=$1 AND deleted_at IS NULL AND commodity_id IS NOT NULL
+          GROUP BY commodity_id
+        ) lh ON lh.commodity_id = c.id
+        WHERE c.farm_id=$1 AND c.deleted_at IS NULL`, [fid]),
     ]);
 
     const totalIncome = parseFloat(incomeRes.rows[0].total);
     const totalExpenses = parseFloat(expenseRes.rows[0].total);
     const loads = loadsRes.rows[0];
-    const tonsMap = (rows) => rows.map(r => ({ name: r.name, tons: parseFloat(r.tons) }));
+
+    const withRemaining = inventoryRes.rows.map(r => {
+      const estimated = r.type === 'Forage' ? r.estimated_stack_tonnage : r.estimated_total_tons;
+      if (estimated == null) return null;
+      const remaining = Math.max(parseFloat(estimated) - parseFloat(r.hauled_tons), 0);
+      return { ...r, remaining };
+    }).filter(Boolean);
+
+    const groupRemaining = (rows, key) => {
+      const totals = {};
+      for (const r of rows) {
+        if (!r[key]) continue;
+        totals[r[key]] = (totals[r[key]] || 0) + r.remaining;
+      }
+      return Object.entries(totals).map(([name, tons]) => ({ name, tons }));
+    };
+    const byTonsDesc = (a, b) => b.tons - a.tons;
+    const cuttingOrder = ['1st', '2nd', '3rd', '4th', '5th'];
+
+    const forageRows = withRemaining.filter(r => r.type === 'Forage');
+    const grainRows = withRemaining.filter(r => r.type === 'Grain');
 
     res.json({
       totalIncome,
@@ -67,10 +84,10 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
       totalNetTons: parseFloat(loads.net_tons).toFixed(1),
       incomeByField: fieldIncomeRes.rows.map(r => ({ name: r.field_name, value: parseFloat(r.value) })),
       recentLoads: recentRes.rows,
-      tonsByCutting: tonsMap(tonsByCuttingRes.rows),
-      tonsByType: tonsMap(tonsByTypeRes.rows),
-      tonsByStackCommodity: tonsMap(tonsByStackCommodityRes.rows),
-      tonsByGrainCommodity: tonsMap(tonsByGrainCommodityRes.rows),
+      tonsByCutting: groupRemaining(forageRows, 'cutting').sort((a, b) => cuttingOrder.indexOf(a.name) - cuttingOrder.indexOf(b.name)),
+      tonsByType: groupRemaining(forageRows, 'forage_grade').sort(byTonsDesc),
+      tonsByStackCommodity: groupRemaining(forageRows, 'type_of_forage').sort(byTonsDesc),
+      tonsByGrainCommodity: groupRemaining(grainRows, 'type_crop').sort(byTonsDesc),
     });
   } catch (err) {
     console.error(err);
