@@ -8,7 +8,7 @@ import { Plus, Pencil, Trash2, Wheat, Layers } from 'lucide-react';
 import { formatDate } from '../lib/format.js';
 
 const currentYear = new Date().getFullYear();
-const emptyForage = { type: 'Forage', field_id: '', year: String(currentYear), price_per_ton: '', stack_number: '', type_of_forage: '', cutting: '1st', tarp: 'No Tarp', bale_count: '', avg_bale_weight_lbs: '', actual_stack_tonnage: '', notes: '' };
+const emptyForage = { type: 'Forage', field_id: '', year: String(currentYear), price_per_ton: '', stack_number: '', type_of_forage: '', forage_grade: '', cutting: '1st', tarp: 'No Tarp', bale_count: '', avg_bale_weight_lbs: '', actual_stack_tonnage: '', notes: '' };
 const emptyGrain = { type: 'Grain', field_id: '', year: String(currentYear), price_per_ton: '', type_crop: '', seed_details: '', estimated_total_tons: '', actual_tons: '' };
 const TARP_OPTIONS = ['No Tarp', 'Top Tarp', 'Full Wrap'];
 const CUTTINGS = ['1st', '2nd', '3rd', '4th', '5th'];
@@ -29,6 +29,7 @@ export default function Commodities() {
   const [viewRow, setViewRow] = useState(null);
   const [addingCropType, setAddingCropType] = useState(false);
   const [addingForageCommodity, setAddingForageCommodity] = useState(false);
+  const [addingForageGrade, setAddingForageGrade] = useState(false);
 
   const load = async () => {
     const [c, f, l] = await Promise.all([api.commodities.list(), api.fields.list(), api.loads.list()]);
@@ -50,9 +51,10 @@ export default function Commodities() {
 
   const cropTypes = [...new Set(rows.filter(r => r.type === 'Grain' && r.type_crop).map(r => r.type_crop))].sort();
   const forageCommodities = [...new Set(rows.filter(r => r.type === 'Forage' && r.type_of_forage).map(r => r.type_of_forage))].sort();
+  const forageGrades = [...new Set(rows.filter(r => r.type === 'Forage' && r.forage_grade).map(r => r.forage_grade))].sort();
 
-  const openAdd = () => { setForm(tab === 'Forage' ? emptyForage : emptyGrain); setAddingCropType(false); setAddingForageCommodity(false); setModal('add'); };
-  const openEdit = (row) => { setForm({ ...row, year: String(row.year || currentYear), price_per_ton: String(row.price_per_ton || ''), bale_count: String(row.bale_count || ''), avg_bale_weight_lbs: String(row.avg_bale_weight_lbs || ''), actual_stack_tonnage: String(row.actual_stack_tonnage || ''), estimated_total_tons: String(row.estimated_total_tons || ''), actual_tons: String(row.actual_tons || ''), tarp: row.tarp || 'No Tarp', notes: row.notes || '' }); setAddingCropType(false); setAddingForageCommodity(false); setModal({ edit: row }); };
+  const openAdd = () => { setForm(tab === 'Forage' ? emptyForage : emptyGrain); setAddingCropType(false); setAddingForageCommodity(false); setAddingForageGrade(false); setModal('add'); };
+  const openEdit = (row) => { setForm({ ...row, year: String(row.year || currentYear), price_per_ton: String(row.price_per_ton || ''), bale_count: String(row.bale_count || ''), avg_bale_weight_lbs: String(row.avg_bale_weight_lbs || ''), actual_stack_tonnage: String(row.actual_stack_tonnage || ''), estimated_total_tons: String(row.estimated_total_tons || ''), actual_tons: String(row.actual_tons || ''), tarp: row.tarp || 'No Tarp', notes: row.notes || '', forage_grade: row.forage_grade || '' }); setAddingCropType(false); setAddingForageCommodity(false); setAddingForageGrade(false); setModal({ edit: row }); };
   const closeModal = () => setModal(null);
   const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
@@ -126,7 +128,7 @@ export default function Commodities() {
             <table className="w-full text-sm whitespace-nowrap">
               <thead>
                 <tr className="border-b border-slate-800">
-                  {[...['Year', 'Stack #', 'Field', 'Commodity', 'Cutting', 'Tarp', 'Bales', 'Est. Tons', 'Bales Left', 'Actual Tons'], ...(isAdmin ? ['$/Ton'] : [])].map(h => (
+                  {[...['Year', 'Stack #', 'Field', 'Commodity', 'Type', 'Cutting', 'Tarp', 'Bales', 'Est. Tons', 'Bales Left', 'Actual Tons'], ...(isAdmin ? ['$/Ton'] : [])].map(h => (
                     <th key={h} className="text-left px-5 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -138,6 +140,7 @@ export default function Commodities() {
                     <td className="px-5 py-3 font-mono text-xs text-slate-300">{row.stack_number || '—'}</td>
                     <td className="px-5 py-3 text-slate-200">{fieldName(row.field_id)}</td>
                     <td className="px-5 py-3 text-slate-200">{row.type_of_forage}</td>
+                    <td className="px-5 py-3 text-slate-300 text-xs">{row.forage_grade || '—'}</td>
                     <td className="px-5 py-3 text-slate-300 text-xs">{row.cutting}</td>
                     <td className="px-5 py-3 text-slate-400 text-xs">{row.tarp || 'No Tarp'}</td>
                     <td className="px-5 py-3 text-slate-300 font-mono">{row.bale_count?.toLocaleString() || '—'}</td>
@@ -147,7 +150,7 @@ export default function Commodities() {
                     {isAdmin && <td className="px-5 py-3 font-mono text-slate-300">{row.price_per_ton ? `$${parseFloat(row.price_per_ton).toFixed(2)}` : '—'}</td>}
                   </tr>
                 ))}
-                {filtered.length === 0 && <tr><td colSpan={isAdmin ? 11 : 10} className="px-5 py-12 text-center text-slate-500">No stacks yet.</td></tr>}
+                {filtered.length === 0 && <tr><td colSpan={isAdmin ? 12 : 11} className="px-5 py-12 text-center text-slate-500">No stacks yet.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -197,7 +200,7 @@ export default function Commodities() {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 <div>
                   <label className="label">Commodity</label>
                   {addingForageCommodity ? (
@@ -221,6 +224,32 @@ export default function Commodities() {
                       <option value="">Select commodity…</option>
                       {forageCommodities.map(c => <option key={c} value={c}>{c}</option>)}
                       <option value="__new__">+ Add new commodity…</option>
+                    </select>
+                  )}
+                </div>
+                <div>
+                  <label className="label">Type</label>
+                  {addingForageGrade ? (
+                    <div className="space-y-1">
+                      <input className="input" name="forage_grade" value={form.forage_grade} onChange={handleChange} placeholder="Premium, Dairy Quality…" autoFocus />
+                      {forageGrades.length > 0 && (
+                        <button type="button" className="text-xs text-soil-400 hover:text-soil-300" onClick={() => { setAddingForageGrade(false); setForm(f => ({ ...f, forage_grade: '' })); }}>
+                          Choose existing
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <select
+                      className="input"
+                      value={form.forage_grade}
+                      onChange={e => {
+                        if (e.target.value === '__new__') { setAddingForageGrade(true); setForm(f => ({ ...f, forage_grade: '' })); }
+                        else setForm(f => ({ ...f, forage_grade: e.target.value }));
+                      }}
+                    >
+                      <option value="">Select type…</option>
+                      {forageGrades.map(g => <option key={g} value={g}>{g}</option>)}
+                      <option value="__new__">+ Add new type…</option>
                     </select>
                   )}
                 </div>
@@ -328,6 +357,7 @@ export default function Commodities() {
                 <div><div className="label">Field</div><div className="text-slate-100">{fieldName(viewRow.field_id)}</div></div>
                 <div><div className="label">Stack #</div><div className="text-slate-100">{viewRow.stack_number || '—'}</div></div>
                 <div><div className="label">Commodity</div><div className="text-slate-100">{viewRow.type_of_forage || '—'}</div></div>
+                <div><div className="label">Type</div><div className="text-slate-100">{viewRow.forage_grade || '—'}</div></div>
                 <div><div className="label">Cutting</div><div className="text-slate-100">{viewRow.cutting || '—'}</div></div>
                 <div><div className="label">Tarp</div><div className="text-slate-100">{viewRow.tarp || 'No Tarp'}</div></div>
                 <div><div className="label">Bale Count</div><div className="font-mono text-slate-100">{viewRow.bale_count?.toLocaleString() ?? '—'}</div></div>

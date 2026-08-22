@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS commodities (
   -- Forage fields
   stack_number TEXT,
   type_of_forage TEXT,
+  forage_grade TEXT,
   cutting TEXT,
   bale_count INT,
   avg_bale_weight_lbs NUMERIC(10,2),

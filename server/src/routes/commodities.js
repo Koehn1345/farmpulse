@@ -26,14 +26,14 @@ router.post('/', requireRole('admin', 'employee'), async (req, res) => {
     const { rows } = await pool.query(
       `INSERT INTO commodities (
         farm_id, type, field_id, year, price_per_ton,
-        stack_number, type_of_forage, cutting, bale_count, avg_bale_weight_lbs,
+        stack_number, type_of_forage, forage_grade, cutting, bale_count, avg_bale_weight_lbs,
         estimated_stack_tonnage, actual_stack_tonnage, test_pdf_url, tarp, notes,
         type_crop, seed_details, estimated_tons_per_acre, estimated_total_tons,
         actual_tons, actual_tons_per_acre
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21) RETURNING *`,
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22) RETURNING *`,
       [
         req.farmId, b.type, b.field_id || null, b.year || new Date().getFullYear(), b.price_per_ton || null,
-        b.stack_number, b.type_of_forage, b.cutting,
+        b.stack_number, b.type_of_forage, b.forage_grade || null, b.cutting,
         b.bale_count || null, b.avg_bale_weight_lbs || null,
         b.estimated_stack_tonnage || null, b.actual_stack_tonnage || null, b.test_pdf_url || null,
         b.tarp || null, b.notes || null,
@@ -55,15 +55,15 @@ router.put('/:id', requireRole('admin', 'employee'), async (req, res) => {
     const { rows } = await pool.query(
       `UPDATE commodities SET
         type=$1, field_id=$2, year=$3, price_per_ton=$4,
-        stack_number=$5, type_of_forage=$6, cutting=$7, bale_count=$8,
-        avg_bale_weight_lbs=$9, estimated_stack_tonnage=$10, actual_stack_tonnage=$11,
-        tarp=$12, notes=$13,
-        type_crop=$14, seed_details=$15, estimated_tons_per_acre=$16,
-        estimated_total_tons=$17, actual_tons=$18, actual_tons_per_acre=$19
-       WHERE id=$20 AND farm_id=$21 AND deleted_at IS NULL RETURNING *`,
+        stack_number=$5, type_of_forage=$6, forage_grade=$7, cutting=$8, bale_count=$9,
+        avg_bale_weight_lbs=$10, estimated_stack_tonnage=$11, actual_stack_tonnage=$12,
+        tarp=$13, notes=$14,
+        type_crop=$15, seed_details=$16, estimated_tons_per_acre=$17,
+        estimated_total_tons=$18, actual_tons=$19, actual_tons_per_acre=$20
+       WHERE id=$21 AND farm_id=$22 AND deleted_at IS NULL RETURNING *`,
       [
         b.type, b.field_id || null, b.year || new Date().getFullYear(), b.price_per_ton || null,
-        b.stack_number, b.type_of_forage, b.cutting, b.bale_count || null,
+        b.stack_number, b.type_of_forage, b.forage_grade || null, b.cutting, b.bale_count || null,
         b.avg_bale_weight_lbs || null, b.estimated_stack_tonnage || null, b.actual_stack_tonnage || null,
         b.tarp || null, b.notes || null,
         b.type_crop, b.seed_details, b.estimated_tons_per_acre || null,
