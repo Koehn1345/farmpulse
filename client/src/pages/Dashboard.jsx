@@ -171,8 +171,8 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <TonsPillGrid title="Left by Cutting" data={data.tonsByCutting} />
           <TonsPillGrid title="Left by Type" data={data.tonsByType} />
-          <TonsPillGrid title="Left by Commodity — Stacks" data={data.tonsByStackCommodity} />
-          <TonsPillGrid title="Left by Commodity — Grain" data={data.tonsByGrainCommodity} />
+          <TonsPillGrid title="Left by Stacks" data={data.tonsByStackCommodity} />
+          <TonsPillGrid title="Left by Grain" data={data.tonsByGrainCommodity} />
         </div>
       </div>
 
