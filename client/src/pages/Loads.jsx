@@ -630,6 +630,22 @@ export default function Loads() {
               )}
             </div>
 
+            {/* Freight Rate / Gross Pay - admin only, set up front by the office,
+                separate from the weight/driver fields the trucker fills in later */}
+            {isAdmin && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Freight Rate ($/ton)</label>
+                  <input className="input" type="number" step="0.01" name="freightRate" value={form.freightRate} onChange={handleChange} placeholder="45.00" />
+                </div>
+                <div>
+                  <label className="label">Gross Pay</label>
+                  <input className="input font-mono" type="number" step="0.01" name="grossPay" value={form.grossPay} onChange={handleChange} placeholder="900.00" />
+                  <div className="text-xs text-slate-500 mt-1">Auto-calculated from Net Weight × Rate — edit to override.</div>
+                </div>
+              </div>
+            )}
+
             {/* Additional fields only shown when editing */}
             {modal !== 'add' && <>
               {form.type === 'Forage' && (
@@ -668,20 +684,6 @@ export default function Loads() {
                   <input className="input" name="bolNumber" value={form.bolNumber} onChange={handleChange} placeholder="BOL-1234" />
                 </div>
               </div>
-
-              {isAdmin && (
-                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-800">
-                  <div>
-                    <label className="label">Freight Rate ($/ton)</label>
-                    <input className="input" type="number" step="0.01" name="freightRate" value={form.freightRate} onChange={handleChange} placeholder="45.00" />
-                  </div>
-                  <div>
-                    <label className="label">Gross Pay</label>
-                    <input className="input font-mono" type="number" step="0.01" name="grossPay" value={form.grossPay} onChange={handleChange} placeholder="900.00" />
-                    <div className="text-xs text-slate-500 mt-1">Auto-calculated from Net Weight × Rate — edit to override.</div>
-                  </div>
-                </div>
-              )}
 
               <div className="pt-2 border-t border-slate-800">
                 <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Paperwork</div>
@@ -799,11 +801,19 @@ export default function Loads() {
       {viewRow && (
         <Modal title={`Load — ${formatDate(viewRow.date)}`} onClose={() => setViewRow(null)} wide>
           <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center justify-between gap-2 mb-1">
               {viewRow.net_weight
                 ? <span className="px-2.5 py-1 rounded text-xs font-semibold bg-green-900/40 text-green-400 border border-green-800/50">Complete</span>
                 : <span className="px-2.5 py-1 rounded text-xs font-semibold bg-amber-900/40 text-amber-400 border border-amber-800/50">New — awaiting delivery info</span>
               }
+              {!viewRow.net_weight && (
+                <button
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-900/30 text-green-400 border border-green-700 hover:bg-green-900/50 transition-colors"
+                  onClick={() => openDriverUpdate(viewRow)}
+                >
+                  <CheckCircle size={14} /> Complete Load
+                </button>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div><div className="label">Customer</div><div className="text-slate-100">{viewRow.customer_name || '—'}</div></div>
