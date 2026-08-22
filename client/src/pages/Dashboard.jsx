@@ -22,17 +22,41 @@ function StatCard({ label, value, sub, icon: Icon, accent }) {
   );
 }
 
-const CustomTooltip = ({ active, payload, label }) => {
+const CustomTooltip = ({ active, payload, label, formatter = fmt }) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm">
         <div className="font-medium text-slate-200">{label}</div>
-        <div className="text-soil-300">{fmt(payload[0].value)}</div>
+        <div className="text-soil-300">{formatter(payload[0].value)}</div>
       </div>
     );
   }
   return null;
 };
+
+function TonsBarChart({ title, data, dataKey = 'tons' }) {
+  return (
+    <div className="card">
+      <h2 className="text-sm font-semibold text-slate-300 mb-4">{title}</h2>
+      {data.length === 0 ? (
+        <div className="h-[160px] flex items-center justify-center text-xs text-slate-600">No data yet</div>
+      ) : (
+        <ResponsiveContainer width="100%" height={160}>
+          <BarChart data={data} barSize={28}>
+            <XAxis dataKey="name" tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => fmtNum(v)} />
+            <Tooltip content={<CustomTooltip formatter={(v) => `${fmtNum(v.toFixed(1))} tons`} />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+            <Bar dataKey={dataKey} radius={[4, 4, 0, 0]}>
+              {data.map((_, i) => (
+                <Cell key={i} fill={`hsl(${140 + i * 30}, 45%, ${45 + i * 5}%)`} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
@@ -63,9 +87,9 @@ export default function Dashboard() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard
-          label="Total Income"
+          label="Projected Income"
           value={fmt(data.totalIncome)}
-          sub="This season"
+          sub="Est. tons × price/ton"
           icon={DollarSign}
           accent="bg-emerald-900/50 text-emerald-400"
         />
@@ -95,7 +119,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Income by Field chart */}
         <div className="card lg:col-span-2">
-          <h2 className="text-sm font-semibold text-slate-300 mb-4">Income by Field</h2>
+          <h2 className="text-sm font-semibold text-slate-300 mb-4">Projected Income by Field</h2>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={data.incomeByField} barSize={32}>
               <XAxis dataKey="name" tick={{ fill: '#a1a1aa', fontSize: 12 }} axisLine={false} tickLine={false} />
@@ -112,10 +136,11 @@ export default function Dashboard() {
 
         {/* P&L Summary */}
         <div className="card">
-          <h2 className="text-sm font-semibold text-slate-300 mb-4">P&amp;L Summary</h2>
+          <h2 className="text-sm font-semibold text-slate-300 mb-1">P&amp;L Summary</h2>
+          <p className="text-xs text-slate-500 mb-4">Income is projected from estimated tonnage × price/ton, not tied to loads hauled.</p>
           <div className="space-y-3">
             <div className="flex justify-between items-center py-2 border-b border-slate-800">
-              <span className="text-sm text-slate-400">Gross Income</span>
+              <span className="text-sm text-slate-400">Projected Income</span>
               <span className="text-sm font-medium text-emerald-400">{fmt(data.totalIncome)}</span>
             </div>
             <div className="flex justify-between items-center py-2 border-b border-slate-800">
@@ -142,6 +167,17 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Tons Breakdown */}
+      <div className="mb-8">
+        <h2 className="text-sm font-semibold text-slate-300 mb-4">Tons Hauled Breakdown</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TonsBarChart title="Tons by Cutting" data={data.tonsByCutting} />
+          <TonsBarChart title="Tons by Type" data={data.tonsByType} />
+          <TonsBarChart title="Tons by Commodity — Stacks" data={data.tonsByStackCommodity} />
+          <TonsBarChart title="Tons by Commodity — Grain" data={data.tonsByGrainCommodity} />
+        </div>
+      </div>
+
       {/* Recent Loads */}
       <div className="card">
         <h2 className="text-sm font-semibold text-slate-300 mb-4">Recent Loads</h2>
@@ -160,8 +196,8 @@ export default function Dashboard() {
               {data.recentLoads.map((load) => (
                 <tr key={load.id} className="table-row">
                   <td className="py-3 text-slate-400 font-mono text-xs">{load.date}</td>
-                  <td className="py-3 text-slate-200">{load.customerName}</td>
-                  <td className="py-3 text-slate-400">{load.fieldName}</td>
+                  <td className="py-3 text-slate-200">{load.customer_name}</td>
+                  <td className="py-3 text-slate-400">{load.field_name}</td>
                   <td className="py-3">
                     <span className={load.type === 'Forage' ? 'badge-forage' : 'badge-grain'}>
                       {typeLabel(load.type)}

@@ -9,8 +9,14 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
   try {
     const fid = req.farmId;
 
-    const [incomeRes, expenseRes, loadsRes, recentRes, fieldIncomeRes] = await Promise.all([
-      pool.query('SELECT COALESCE(SUM(amount),0) as total FROM income WHERE farm_id=$1 AND deleted_at IS NULL', [fid]),
+    // Projected income is the commodity's full estimated tonnage x its
+    // price per ton - it reflects what the whole stack/crop should be
+    // worth, not what's accrued so far from loads actually hauled.
+    const estTonsExpr = `(CASE WHEN c.type = 'Forage' THEN c.estimated_stack_tonnage ELSE c.estimated_total_tons END)`;
+
+    const [incomeRes, expenseRes, loadsRes, recentRes, fieldIncomeRes, tonsByCuttingRes, tonsByTypeRes, tonsByStackCommodityRes, tonsByGrainCommodityRes] = await Promise.all([
+      pool.query(`SELECT COALESCE(SUM(${estTonsExpr} * c.price_per_ton), 0) as total
+        FROM commodities c WHERE c.farm_id=$1 AND c.deleted_at IS NULL`, [fid]),
       pool.query('SELECT COALESCE(SUM(amount),0) as total FROM expenses WHERE farm_id=$1 AND deleted_at IS NULL', [fid]),
       pool.query(`SELECT
         COUNT(*) as total,
@@ -24,15 +30,32 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
         LEFT JOIN fields f ON f.id = l.field_id
         WHERE l.farm_id=$1 AND l.deleted_at IS NULL
         ORDER BY l.date DESC, l.created_at DESC LIMIT 5`, [fid]),
-      pool.query(`SELECT f.field_name, COALESCE(SUM(i.amount),0) as value
-        FROM income i JOIN fields f ON f.id = i.field_id
-        WHERE i.farm_id=$1 AND i.deleted_at IS NULL
+      pool.query(`SELECT f.field_name, COALESCE(SUM(${estTonsExpr} * c.price_per_ton), 0) as value
+        FROM commodities c JOIN fields f ON f.id = c.field_id
+        WHERE c.farm_id=$1 AND c.deleted_at IS NULL
         GROUP BY f.field_name ORDER BY value DESC`, [fid]),
+      pool.query(`SELECT co.cutting as name, COALESCE(SUM(l.net_weight)/2000, 0) as tons
+        FROM loads l JOIN commodities co ON co.id = l.commodity_id
+        WHERE l.farm_id=$1 AND l.deleted_at IS NULL AND l.type='Forage' AND co.cutting IS NOT NULL
+        GROUP BY co.cutting ORDER BY co.cutting`, [fid]),
+      pool.query(`SELECT co.forage_grade as name, COALESCE(SUM(l.net_weight)/2000, 0) as tons
+        FROM loads l JOIN commodities co ON co.id = l.commodity_id
+        WHERE l.farm_id=$1 AND l.deleted_at IS NULL AND l.type='Forage' AND co.forage_grade IS NOT NULL
+        GROUP BY co.forage_grade ORDER BY tons DESC`, [fid]),
+      pool.query(`SELECT co.type_of_forage as name, COALESCE(SUM(l.net_weight)/2000, 0) as tons
+        FROM loads l JOIN commodities co ON co.id = l.commodity_id
+        WHERE l.farm_id=$1 AND l.deleted_at IS NULL AND l.type='Forage' AND co.type_of_forage IS NOT NULL
+        GROUP BY co.type_of_forage ORDER BY tons DESC`, [fid]),
+      pool.query(`SELECT co.type_crop as name, COALESCE(SUM(l.net_weight)/2000, 0) as tons
+        FROM loads l JOIN commodities co ON co.id = l.commodity_id
+        WHERE l.farm_id=$1 AND l.deleted_at IS NULL AND l.type='Grain' AND co.type_crop IS NOT NULL
+        GROUP BY co.type_crop ORDER BY tons DESC`, [fid]),
     ]);
 
     const totalIncome = parseFloat(incomeRes.rows[0].total);
     const totalExpenses = parseFloat(expenseRes.rows[0].total);
     const loads = loadsRes.rows[0];
+    const tonsMap = (rows) => rows.map(r => ({ name: r.name, tons: parseFloat(r.tons) }));
 
     res.json({
       totalIncome,
@@ -44,6 +67,10 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
       totalNetTons: parseFloat(loads.net_tons).toFixed(1),
       incomeByField: fieldIncomeRes.rows.map(r => ({ name: r.field_name, value: parseFloat(r.value) })),
       recentLoads: recentRes.rows,
+      tonsByCutting: tonsMap(tonsByCuttingRes.rows),
+      tonsByType: tonsMap(tonsByTypeRes.rows),
+      tonsByStackCommodity: tonsMap(tonsByStackCommodityRes.rows),
+      tonsByGrainCommodity: tonsMap(tonsByGrainCommodityRes.rows),
     });
   } catch (err) {
     console.error(err);
