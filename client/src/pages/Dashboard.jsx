@@ -81,6 +81,18 @@ export default function Dashboard() {
         <p className="text-slate-400 mt-1 text-sm">Season overview and recent activity</p>
       </div>
 
+      {/* Tons left in inventory */}
+      <div className="mb-8">
+        <h2 className="text-sm font-semibold text-slate-300 mb-1">Tons Left in Inventory</h2>
+        <p className="text-xs text-slate-500 mb-4">Estimated tonnage not yet hauled, by cutting/type/commodity.</p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TonsPillGrid title="Inventory By Cutting" data={data.tonsByCutting} />
+          <TonsPillGrid title="Inventory By Type" data={data.tonsByType} />
+          <TonsPillGrid title="Inventory By Commodity — Stacks" data={data.tonsByStackCommodity} />
+          <TonsPillGrid title="Inventory By Commodity — Grain" data={data.tonsByGrainCommodity} />
+        </div>
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard
@@ -161,18 +173,6 @@ export default function Dashboard() {
               {data.totalIncome > 0 ? ((data.netProfit / data.totalIncome) * 100).toFixed(1) : 0}%
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Tons left in inventory */}
-      <div className="mb-8">
-        <h2 className="text-sm font-semibold text-slate-300 mb-1">Tons Left in Inventory</h2>
-        <p className="text-xs text-slate-500 mb-4">Estimated tonnage not yet hauled, by cutting/type/commodity.</p>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <TonsPillGrid title="Inventory By Cutting" data={data.tonsByCutting} />
-          <TonsPillGrid title="Inventory By Type" data={data.tonsByType} />
-          <TonsPillGrid title="Inventory By Commodity — Stacks" data={data.tonsByStackCommodity} />
-          <TonsPillGrid title="Inventory By Commodity — Grain" data={data.tonsByGrainCommodity} />
         </div>
       </div>
 
