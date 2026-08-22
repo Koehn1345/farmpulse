@@ -122,8 +122,13 @@ router.put('/:id', async (req, res) => {
       // net_weight can change through paths that never touch financials
       // (e.g. the trucker/driver "complete this load" flow) - keep
       // gross_pay tracking the load's existing freight_rate so it
-      // doesn't go stale relative to the corrected tonnage.
-      setParts.push(`gross_pay = CASE WHEN freight_rate IS NOT NULL AND $10 IS NOT NULL THEN ROUND(($10::numeric / 2000) * freight_rate, 2) ELSE gross_pay END`);
+      // doesn't go stale relative to the corrected tonnage. Reusing the
+      // $10 net_weight placeholder here (instead of a fresh one) made
+      // Postgres unable to resolve its type ("could not determine data
+      // type of parameter $10") and broke every load save on this path.
+      params.push(b.net_weight || null);
+      const netIdx = params.length;
+      setParts.push(`gross_pay = CASE WHEN freight_rate IS NOT NULL AND $${netIdx}::numeric IS NOT NULL THEN ROUND(($${netIdx}::numeric / 2000) * freight_rate, 2) ELSE gross_pay END`);
     }
     params.push(req.params.id, req.farmId);
     const { rows } = await pool.query(
