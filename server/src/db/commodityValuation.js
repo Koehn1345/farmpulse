@@ -55,9 +55,15 @@ export async function syncCommodityValuation(commodityId) {
   const currentPrice = parseFloat(commodity.price_per_ton) || 0;
   const estimatedValue = actualValue + remainingTons * currentPrice;
 
+  // Actual tons hauled is the same shippedTons figure used for valuation
+  // above - keeping it in the same write means the displayed "Actual
+  // Tons" column can never drift from what actual_value was computed
+  // from. Written to the type-appropriate column (Forage vs Grain use
+  // different fields for this).
+  const tonnageColumn = commodity.type === 'Forage' ? 'actual_stack_tonnage' : 'actual_tons';
   await pool.query(
-    'UPDATE commodities SET actual_value=$1, estimated_value=$2 WHERE id=$3',
-    [actualValue.toFixed(2), estimatedValue.toFixed(2), commodityId]
+    `UPDATE commodities SET actual_value=$1, estimated_value=$2, ${tonnageColumn}=$3 WHERE id=$4`,
+    [actualValue.toFixed(2), estimatedValue.toFixed(2), shippedTons.toFixed(2), commodityId]
   );
 }
 

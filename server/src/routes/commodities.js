@@ -46,23 +46,26 @@ router.post('/', requireRole('admin', 'employee'), async (req, res) => {
     // Price/buyer are financial - only admins may set them, even at creation
     const initialPrice = isAdmin ? (b.price_per_ton || null) : null;
     const initialBuyer = isAdmin ? (b.buyer_customer_id || null) : null;
+    // actual_stack_tonnage/actual_tons are never client-settable - they're
+    // always server-computed from shipped loads (see syncCommodityValuation),
+    // and a brand-new commodity has no loads yet anyway.
     const { rows } = await pool.query(
       `INSERT INTO commodities (
         farm_id, type, field_id, year, price_per_ton, buyer_customer_id,
         stack_number, type_of_forage, forage_grade, cutting, bale_count, avg_bale_weight_lbs,
-        estimated_stack_tonnage, actual_stack_tonnage, test_pdf_url, tarp, notes,
+        estimated_stack_tonnage, test_pdf_url, tarp, notes,
         type_crop, seed_details, estimated_tons_per_acre, estimated_total_tons,
-        actual_tons, actual_tons_per_acre
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23) RETURNING *`,
+        actual_tons_per_acre
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21) RETURNING *`,
       [
         req.farmId, b.type, b.field_id || null, b.year || new Date().getFullYear(), initialPrice, initialBuyer,
         b.stack_number, b.type_of_forage, b.forage_grade || null, b.cutting,
         b.bale_count || null, b.avg_bale_weight_lbs || null,
-        b.estimated_stack_tonnage || null, b.actual_stack_tonnage || null, b.test_pdf_url || null,
+        b.estimated_stack_tonnage || null, b.test_pdf_url || null,
         b.tarp || null, b.notes || null,
         b.type_crop, b.seed_details,
         b.estimated_tons_per_acre || null, b.estimated_total_tons || null,
-        b.actual_tons || null, b.actual_tons_per_acre || null,
+        b.actual_tons_per_acre || null,
       ]
     );
     const commodity = rows[0];
@@ -88,7 +91,10 @@ router.post('/', requireRole('admin', 'employee'), async (req, res) => {
 // Edit - price/buyer are deliberately NOT settable here. They only ever
 // change through POST /:id/price, which appends a price-history row
 // instead of overwriting the current value, so past loads keep the price
-// that was actually effective on their date.
+// that was actually effective on their date. actual_stack_tonnage/
+// actual_tons are likewise excluded - always server-computed from
+// shipped loads (syncCommodityValuation below), never client-set, so a
+// stale value round-tripped from an edit form can't undo the rollup.
 router.put('/:id', requireRole('admin', 'employee'), async (req, res) => {
   try {
     const b = req.body;
@@ -96,18 +102,18 @@ router.put('/:id', requireRole('admin', 'employee'), async (req, res) => {
       `UPDATE commodities SET
         type=$1, field_id=$2, year=$3,
         stack_number=$4, type_of_forage=$5, forage_grade=$6, cutting=$7, bale_count=$8,
-        avg_bale_weight_lbs=$9, estimated_stack_tonnage=$10, actual_stack_tonnage=$11,
-        tarp=$12, notes=$13,
-        type_crop=$14, seed_details=$15, estimated_tons_per_acre=$16,
-        estimated_total_tons=$17, actual_tons=$18, actual_tons_per_acre=$19
-       WHERE id=$20 AND farm_id=$21 AND deleted_at IS NULL RETURNING *`,
+        avg_bale_weight_lbs=$9, estimated_stack_tonnage=$10,
+        tarp=$11, notes=$12,
+        type_crop=$13, seed_details=$14, estimated_tons_per_acre=$15,
+        estimated_total_tons=$16, actual_tons_per_acre=$17
+       WHERE id=$18 AND farm_id=$19 AND deleted_at IS NULL RETURNING *`,
       [
         b.type, b.field_id || null, b.year || new Date().getFullYear(),
         b.stack_number, b.type_of_forage, b.forage_grade || null, b.cutting, b.bale_count || null,
-        b.avg_bale_weight_lbs || null, b.estimated_stack_tonnage || null, b.actual_stack_tonnage || null,
+        b.avg_bale_weight_lbs || null, b.estimated_stack_tonnage || null,
         b.tarp || null, b.notes || null,
         b.type_crop, b.seed_details, b.estimated_tons_per_acre || null,
-        b.estimated_total_tons || null, b.actual_tons || null, b.actual_tons_per_acre || null,
+        b.estimated_total_tons || null, b.actual_tons_per_acre || null,
         req.params.id, req.farmId,
       ]
     );

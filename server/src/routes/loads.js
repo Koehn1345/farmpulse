@@ -75,16 +75,10 @@ router.post('/', async (req, res) => {
       ]
     );
 
-    // Auto-update actual tonnage on the commodity
-    if (b.commodity_id && b.net_weight) {
-      await pool.query(
-        `UPDATE commodities SET actual_stack_tonnage = (
-          SELECT ROUND(SUM(net_weight)/2000, 2) FROM loads
-          WHERE commodity_id = $1 AND deleted_at IS NULL
-        ) WHERE id = $1`,
-        [b.commodity_id]
-      );
-    }
+    // actual_stack_tonnage/actual_tons are recomputed inside
+    // syncCommodityValuation below, from every commodity-affecting load
+    // save (create/edit/delete) - not just creation - so this no longer
+    // needs its own separate rollup.
     await Promise.all([syncLoadIncome(rows[0]), syncLoadExpense(rows[0]), syncCommodityValuation(rows[0].commodity_id)]);
     res.status(201).json(forRole(rows[0], req.userRole));
   } catch (err) {

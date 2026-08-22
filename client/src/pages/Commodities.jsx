@@ -82,16 +82,16 @@ export default function Commodities() {
   const handleSave = async () => {
     setSaving(true);
     const payload = { ...form, year: parseInt(form.year) || currentYear, price_per_ton: parseFloat(form.price_per_ton) || null };
+    // actual_stack_tonnage/actual_tons are server-computed from shipped
+    // loads and not sent here - the server ignores them either way.
     if (form.type === 'Forage') {
       payload.bale_count = parseInt(form.bale_count) || null;
       payload.avg_bale_weight_lbs = parseFloat(form.avg_bale_weight_lbs) || null;
-      payload.actual_stack_tonnage = form.actual_stack_tonnage ? parseFloat(form.actual_stack_tonnage) : null;
       if (payload.bale_count && payload.avg_bale_weight_lbs) {
         payload.estimated_stack_tonnage = (payload.bale_count * payload.avg_bale_weight_lbs) / 2000;
       }
     } else {
       payload.estimated_total_tons = parseFloat(form.estimated_total_tons) || null;
-      payload.actual_tons = form.actual_tons ? parseFloat(form.actual_tons) : null;
       payload.actual_tons_per_acre = null;
     }
     try {
@@ -222,7 +222,7 @@ export default function Commodities() {
                     <td className="px-5 py-3 text-slate-300 font-mono">{row.bale_count?.toLocaleString() || '—'}</td>
                     <td className="px-5 py-3 text-slate-300 font-mono">{row.estimated_stack_tonnage ? parseFloat(row.estimated_stack_tonnage).toFixed(1) : '—'}</td>
                     <td className="px-5 py-3 font-mono">{row.bale_count != null ? balesLeft(row).toLocaleString() : '—'}</td>
-                    <td className="px-5 py-3">{row.actual_stack_tonnage ? <span className="text-emerald-400 font-mono">{parseFloat(row.actual_stack_tonnage).toFixed(1)}</span> : <span className="text-slate-600 text-xs">Pending</span>}</td>
+                    <td className="px-5 py-3">{row.actual_stack_tonnage != null ? <span className="text-emerald-400 font-mono">{parseFloat(row.actual_stack_tonnage).toFixed(1)}</span> : <span className="text-slate-600 text-xs">Pending</span>}</td>
                     {isAdmin && <>
                       <td className="px-5 py-3 text-slate-400 text-xs">{customerName(row.buyer_customer_id)}</td>
                       <td className="px-5 py-3 font-mono text-slate-300">
@@ -263,7 +263,7 @@ export default function Commodities() {
                     <td className="px-5 py-3 text-slate-400 text-xs">{row.seed_details || '—'}</td>
                     <td className="px-5 py-3 font-mono text-slate-300">{row.estimated_total_tons ? parseFloat(row.estimated_total_tons).toFixed(1) : '—'}</td>
                     <td className="px-5 py-3 font-mono">{row.estimated_total_tons != null ? tonsLeft(row).toFixed(1) : '—'}</td>
-                    <td className="px-5 py-3">{row.actual_tons ? <span className="text-amber-400 font-mono">{parseFloat(row.actual_tons).toFixed(1)}</span> : <span className="text-slate-600 text-xs">Pending</span>}</td>
+                    <td className="px-5 py-3">{row.actual_tons != null ? <span className="text-amber-400 font-mono">{parseFloat(row.actual_tons).toFixed(1)}</span> : <span className="text-slate-600 text-xs">Pending</span>}</td>
                     {isAdmin && <>
                       <td className="px-5 py-3 text-slate-400 text-xs">{customerName(row.buyer_customer_id)}</td>
                       <td className="px-5 py-3 font-mono text-slate-300">
@@ -367,7 +367,7 @@ export default function Commodities() {
               </div>
               <div>
                 <label className="label">Actual Stack Tonnage</label>
-                <input className="input" type="number" name="actual_stack_tonnage" value={form.actual_stack_tonnage} onChange={handleChange} placeholder="Auto-updates from loads" />
+                <input className="input bg-slate-800 text-slate-500" type="number" value={form.actual_stack_tonnage} disabled placeholder="Auto-computed from loads" />
               </div>
               {isAdmin && modal === 'add' && (
                 <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-800">
@@ -433,7 +433,7 @@ export default function Commodities() {
               </div>
               <div>
                 <label className="label">Actual Tons</label>
-                <input className="input" type="number" name="actual_tons" value={form.actual_tons} onChange={handleChange} placeholder="Auto-updates from loads" />
+                <input className="input bg-slate-800 text-slate-500" type="number" value={form.actual_tons} disabled placeholder="Auto-computed from loads" />
               </div>
               {isAdmin && modal === 'add' && (
                 <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-800">
@@ -498,7 +498,7 @@ export default function Commodities() {
                 <div><div className="label">Bale Count</div><div className="font-mono text-slate-100">{viewRow.bale_count?.toLocaleString() ?? '—'}</div></div>
                 <div><div className="label">Bales Left</div><div className="font-mono text-slate-100">{viewRow.bale_count != null ? balesLeft(viewRow).toLocaleString() : '—'}</div></div>
                 <div><div className="label">Est. Tons</div><div className="font-mono text-slate-100">{viewRow.estimated_stack_tonnage ? parseFloat(viewRow.estimated_stack_tonnage).toFixed(1) : '—'}</div></div>
-                <div><div className="label">Actual Tons</div><div className="font-mono text-slate-100">{viewRow.actual_stack_tonnage ? parseFloat(viewRow.actual_stack_tonnage).toFixed(1) : '—'}</div></div>
+                <div><div className="label">Actual Tons</div><div className="font-mono text-slate-100">{viewRow.actual_stack_tonnage != null ? parseFloat(viewRow.actual_stack_tonnage).toFixed(1) : '—'}</div></div>
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-5 pb-4 border-b border-slate-800">
@@ -507,7 +507,7 @@ export default function Commodities() {
                 <div><div className="label">Seed Variety</div><div className="text-slate-100">{viewRow.seed_details || '—'}</div></div>
                 <div><div className="label">Est. Tons</div><div className="font-mono text-slate-100">{viewRow.estimated_total_tons ? parseFloat(viewRow.estimated_total_tons).toFixed(1) : '—'}</div></div>
                 <div><div className="label">Tons Left</div><div className="font-mono text-slate-100">{viewRow.estimated_total_tons != null ? tonsLeft(viewRow).toFixed(1) : '—'}</div></div>
-                <div><div className="label">Actual Tons</div><div className="font-mono text-slate-100">{viewRow.actual_tons ? parseFloat(viewRow.actual_tons).toFixed(1) : '—'}</div></div>
+                <div><div className="label">Actual Tons</div><div className="font-mono text-slate-100">{viewRow.actual_tons != null ? parseFloat(viewRow.actual_tons).toFixed(1) : '—'}</div></div>
               </div>
             )}
 
