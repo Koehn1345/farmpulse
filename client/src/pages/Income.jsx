@@ -63,7 +63,7 @@ export default function Income() {
   };
 
   const sorted = [...rows].sort((a, b) => new Date(b.date) - new Date(a.date));
-  const total = rows.reduce((s, r) => s + (r.amount || 0), 0);
+  const total = rows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
 
   return (
     <div className="p-6 lg:p-8 max-w-5xl mx-auto">

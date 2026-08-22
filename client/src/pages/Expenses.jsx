@@ -62,11 +62,11 @@ export default function Expenses() {
   };
 
   const sorted = [...rows].sort((a, b) => new Date(b.date) - new Date(a.date));
-  const total = rows.reduce((s, r) => s + (r.amount || 0), 0);
+  const total = rows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
 
   // Group by vendor for summary
   const byVendor = rows.reduce((acc, r) => {
-    acc[r.vendor] = (acc[r.vendor] || 0) + r.amount;
+    acc[r.vendor] = (acc[r.vendor] || 0) + (parseFloat(r.amount) || 0);
     return acc;
   }, {});
 
