@@ -12,7 +12,10 @@ const emptyLoad = {
   type: 'Forage', baleCount: '', grossWeight: '', tareWeight: '', netWeight: '',
   driver: '', truckNumber: '', bolNumber: '',
   bol_url: '', scale_ticket_url: '', misc_url: '',
+  freightRate: '', grossPay: '',
 };
+
+const fmtCurrency = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n || 0);
 
 const emptyDriverUpdate = {
   baleCount: '', grossWeight: '', tareWeight: '', netWeight: '',
@@ -137,6 +140,7 @@ export default function Loads() {
   const [viewRow, setViewRow] = useState(null);
   const [driverUpdate, setDriverUpdate] = useState(null);
   const [driverForm, setDriverForm] = useState(emptyDriverUpdate);
+  const [editingRateId, setEditingRateId] = useState(null);
 
   const loadData = async () => {
     const [l, c, f, co] = await Promise.all([
@@ -174,6 +178,8 @@ export default function Loads() {
       bol_url: row.bol_url || '',
       scale_ticket_url: row.scale_ticket_url || '',
       misc_url: row.misc_url || '',
+      freightRate: row.freight_rate ?? '',
+      grossPay: row.gross_pay ?? '',
     });
     setQuickAdd(null);
     setModal({ edit: row });
@@ -205,6 +211,11 @@ export default function Loads() {
         const gross = parseFloat(name === 'grossWeight' ? value : f.grossWeight) || 0;
         const tare = parseFloat(name === 'tareWeight' ? value : f.tareWeight) || 0;
         next.netWeight = gross > 0 && tare > 0 ? String(gross - tare) : f.netWeight;
+      }
+      if (['grossWeight', 'tareWeight', 'netWeight', 'freightRate'].includes(name)) {
+        const net = parseFloat(next.netWeight) || 0;
+        const rate = parseFloat(name === 'freightRate' ? value : f.freightRate) || 0;
+        next.grossPay = net > 0 && rate > 0 ? ((net / 2000) * rate).toFixed(2) : f.grossPay;
       }
       return next;
     });
@@ -246,12 +257,37 @@ export default function Loads() {
       bol_url: form.bol_url || null,
       scale_ticket_url: form.scale_ticket_url || null,
       misc_url: form.misc_url || null,
+      freight_rate: form.freightRate !== '' ? parseFloat(form.freightRate) : null,
+      gross_pay: form.grossPay !== '' ? parseFloat(form.grossPay) : null,
     };
     try {
       if (modal === 'add') await api.loads.create(payload);
       else await api.loads.update(modal.edit.id, payload);
       await loadData(); closeModal();
     } finally { setSaving(false); }
+  };
+
+  // Inline rate edit in the table - lets an admin backfill Freight Rate on
+  // many existing loads without opening the full edit modal each time.
+  const saveRate = async (row, rawValue) => {
+    setEditingRateId(null);
+    const rate = rawValue === '' ? null : parseFloat(rawValue);
+    const prevRate = row.freight_rate != null ? parseFloat(row.freight_rate) : null;
+    if (rate === prevRate || (Number.isNaN(rate) && prevRate == null)) return;
+    const netTons = row.net_weight ? parseFloat(row.net_weight) / 2000 : 0;
+    const grossPay = rate != null && !Number.isNaN(rate) && netTons > 0 ? +(netTons * rate).toFixed(2) : null;
+    const payload = {
+      date: row.date, customer_id: row.customer_id || null, commodity_id: row.commodity_id || null,
+      field_id: row.field_id || null, shipper: row.shipper, type: row.type,
+      bale_count: row.bale_count ?? null, gross_weight: row.gross_weight ?? null,
+      tare_weight: row.tare_weight ?? null, net_weight: row.net_weight ?? null,
+      driver: row.driver, truck_number: row.truck_number,
+      bol_number: row.bol_number ?? null, bol_url: row.bol_url ?? null,
+      scale_ticket_url: row.scale_ticket_url ?? null, misc_url: row.misc_url ?? null,
+      freight_rate: rate, gross_pay: grossPay,
+    };
+    const updated = await api.loads.update(row.id, payload);
+    setRows(rs => rs.map(r => r.id === row.id ? updated : r));
   };
 
   const handleDriverSave = async (row) => {
@@ -317,6 +353,8 @@ export default function Loads() {
   });
   const sortedRows = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
   const filteredCommodities = commodities.filter(c => c.type === form.type);
+  const baseHeaders = ['', 'Status', 'Date', 'Customer', 'Field', 'Crop', 'Shipper', 'Driver / Truck', 'Bales', 'BOL #', 'Gross', 'Tare', 'Net (lbs)', 'Tons', 'Type'];
+  const headers = isAdmin ? [...baseHeaders, 'Rate ($/ton)', 'Gross Pay'] : baseHeaders;
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
@@ -401,7 +439,7 @@ export default function Loads() {
             <table className="w-full text-sm whitespace-nowrap">
               <thead>
                 <tr className="border-b border-slate-800">
-                  {['', 'Status', 'Date', 'Customer', 'Field', 'Crop', 'Shipper', 'Driver / Truck', 'Bales', 'BOL #', 'Gross', 'Tare', 'Net (lbs)', 'Tons', 'Type'].map(h => (
+                  {headers.map(h => (
                     <th key={h} className="text-left px-4 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -417,7 +455,7 @@ export default function Loads() {
                       <Fragment key={row.id}>
                         {isNewDay && (
                           <tr>
-                            <td colSpan={15} className="px-4 pt-4 pb-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider bg-slate-950">
+                            <td colSpan={headers.length} className="px-4 pt-4 pb-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider bg-slate-950">
                               {formatDate(row.date)}
                             </td>
                           </tr>
@@ -457,13 +495,40 @@ export default function Loads() {
                           <td className="px-4 py-3 font-mono font-medium text-slate-100">{row.net_weight?.toLocaleString() || '—'}</td>
                           <td className="px-4 py-3 font-mono text-slate-400 text-xs">{row.net_weight ? (row.net_weight / 2000).toFixed(2) : '—'}</td>
                           <td className="px-4 py-3 text-slate-300 text-xs">{typeLabel(row.type)}</td>
+                          {isAdmin && (
+                            <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                              {editingRateId === row.id ? (
+                                <input
+                                  autoFocus
+                                  type="number"
+                                  step="0.01"
+                                  className="input !w-24 !py-1 text-xs"
+                                  defaultValue={row.freight_rate ?? ''}
+                                  onBlur={e => saveRate(row, e.target.value)}
+                                  onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); }}
+                                />
+                              ) : (
+                                <button
+                                  className="font-mono text-xs text-slate-300 hover:text-soil-300 underline decoration-dotted underline-offset-2"
+                                  onClick={() => setEditingRateId(row.id)}
+                                >
+                                  {row.freight_rate != null ? `$${Number(row.freight_rate).toFixed(2)}` : 'Set rate'}
+                                </button>
+                              )}
+                            </td>
+                          )}
+                          {isAdmin && (
+                            <td className="px-4 py-3 font-mono text-xs text-slate-300">
+                              {row.gross_pay != null ? fmtCurrency(row.gross_pay) : '—'}
+                            </td>
+                          )}
                         </tr>
                       </Fragment>
                     );
                   });
                 })()}
                 {sortedRows.length === 0 && (
-                  <tr><td colSpan={15} className="px-4 py-12 text-center text-slate-500">No loads logged yet.</td></tr>
+                  <tr><td colSpan={headers.length} className="px-4 py-12 text-center text-slate-500">No loads logged yet.</td></tr>
                 )}
               </tbody>
             </table>
@@ -603,6 +668,20 @@ export default function Loads() {
                   <input className="input" name="bolNumber" value={form.bolNumber} onChange={handleChange} placeholder="BOL-1234" />
                 </div>
               </div>
+
+              {isAdmin && (
+                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-800">
+                  <div>
+                    <label className="label">Freight Rate ($/ton)</label>
+                    <input className="input" type="number" step="0.01" name="freightRate" value={form.freightRate} onChange={handleChange} placeholder="45.00" />
+                  </div>
+                  <div>
+                    <label className="label">Gross Pay</label>
+                    <input className="input font-mono" type="number" step="0.01" name="grossPay" value={form.grossPay} onChange={handleChange} placeholder="900.00" />
+                    <div className="text-xs text-slate-500 mt-1">Auto-calculated from Net Weight × Rate — edit to override.</div>
+                  </div>
+                </div>
+              )}
 
               <div className="pt-2 border-t border-slate-800">
                 <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Paperwork</div>
@@ -744,6 +823,13 @@ export default function Loads() {
               <div><div className="label">Net (lbs)</div><div className="font-mono text-slate-100 font-medium">{viewRow.net_weight?.toLocaleString() || '—'}</div></div>
               <div><div className="label">Tons</div><div className="font-mono text-slate-100">{viewRow.net_weight ? (viewRow.net_weight / 2000).toFixed(2) : '—'}</div></div>
             </div>
+
+            {isAdmin && (
+              <div className="grid grid-cols-2 gap-4 text-sm pt-2 border-t border-slate-800">
+                <div><div className="label">Freight Rate</div><div className="font-mono text-slate-100">{viewRow.freight_rate != null ? `$${Number(viewRow.freight_rate).toFixed(2)}/ton` : '—'}</div></div>
+                <div><div className="label">Gross Pay</div><div className="font-mono text-slate-100 font-medium">{viewRow.gross_pay != null ? fmtCurrency(viewRow.gross_pay) : '—'}</div></div>
+              </div>
+            )}
 
             {(viewRow.bol_url || viewRow.scale_ticket_url || viewRow.misc_url) && (
               <div className="pt-2 border-t border-slate-800">

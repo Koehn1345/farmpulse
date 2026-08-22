@@ -112,6 +112,8 @@ CREATE TABLE IF NOT EXISTS loads (
   bol_url TEXT,
   scale_ticket_url TEXT,
   misc_url TEXT,
+  freight_rate NUMERIC(10,2),
+  gross_pay NUMERIC(12,2),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   deleted_at TIMESTAMPTZ
 );
@@ -139,6 +141,7 @@ CREATE TABLE IF NOT EXISTS expenses (
   field_id UUID REFERENCES fields(id),
   amount NUMERIC(12,2) NOT NULL,
   notes TEXT,
+  load_id UUID REFERENCES loads(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   deleted_at TIMESTAMPTZ
 );
@@ -194,6 +197,7 @@ CREATE INDEX IF NOT EXISTS idx_loads_date ON loads(farm_id, date DESC) WHERE del
 CREATE INDEX IF NOT EXISTS idx_income_farm ON income(farm_id) WHERE deleted_at IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_income_load_id ON income(load_id) WHERE load_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_expenses_farm ON expenses(farm_id) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_expenses_load_id ON expenses(load_id) WHERE load_id IS NOT NULL;
 `;
 
 try {

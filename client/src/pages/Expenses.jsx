@@ -115,7 +115,12 @@ export default function Expenses() {
               {sorted.map(row => (
                 <tr key={row.id} className="table-row cursor-pointer" onClick={() => setViewRow(row)}>
                   <td className="px-5 py-3 font-mono text-xs text-slate-400">{row.date}</td>
-                  <td className="px-5 py-3 text-slate-200 font-medium">{row.vendor}</td>
+                  <td className="px-5 py-3 text-slate-200 font-medium">
+                    {row.vendor}
+                    {row.load_id && (
+                      <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-800 text-slate-400 border border-slate-700 align-middle">From load</span>
+                    )}
+                  </td>
                   <td className="px-5 py-3 text-slate-400">{row.field_name || '—'}</td>
                   <td className="px-5 py-3 text-slate-400 text-xs max-w-xs truncate">{row.notes || '—'}</td>
                   <td className="px-5 py-3 text-right font-semibold text-red-400">{fmt(row.amount)}</td>
@@ -186,11 +191,24 @@ export default function Expenses() {
               <div className="label">Notes</div>
               <div className="text-slate-300 text-sm">{viewRow.notes || '—'}</div>
             </div>
+            {viewRow.load_id && (
+              <div className="text-xs text-slate-400 bg-slate-800/50 rounded-lg px-3 py-2 border border-slate-700">
+                From load — edit the load to change this.
+              </div>
+            )}
             <div className="flex gap-3 pt-2 border-t border-slate-800">
-              <button className="btn-primary flex-1 justify-center" onClick={() => { openEdit(viewRow); setViewRow(null); }}>
+              <button
+                className="btn-primary flex-1 justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+                onClick={() => { openEdit(viewRow); setViewRow(null); }}
+                disabled={!!viewRow.load_id}
+              >
                 <Pencil size={13} /> Edit
               </button>
-              <button className="btn-danger flex-1 justify-center" onClick={() => handleDelete(viewRow.id)}>
+              <button
+                className="btn-danger flex-1 justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+                onClick={() => handleDelete(viewRow.id)}
+                disabled={!!viewRow.load_id}
+              >
                 <Trash2 size={13} /> Delete
               </button>
               <button className="btn-secondary" onClick={() => setViewRow(null)}>Close</button>

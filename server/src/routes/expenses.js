@@ -28,6 +28,13 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   const { date, vendor, field_id, amount, notes } = req.body;
+  const linked = await pool.query(
+    'SELECT load_id FROM expenses WHERE id=$1 AND farm_id=$2 AND deleted_at IS NULL',
+    [req.params.id, req.farmId]
+  );
+  if (linked.rows.length && linked.rows[0].load_id) {
+    return res.status(400).json({ error: 'This expense is linked to a load — edit the load to change it.' });
+  }
   const { rows } = await pool.query(
     `UPDATE expenses SET date=$1, vendor=$2, field_id=$3, amount=$4, notes=$5
      WHERE id=$6 AND farm_id=$7 AND deleted_at IS NULL RETURNING *`,
@@ -38,6 +45,13 @@ router.put('/:id', async (req, res) => {
 });
 
 router.delete('/:id', async (req, res) => {
+  const linked = await pool.query(
+    'SELECT load_id FROM expenses WHERE id=$1 AND farm_id=$2 AND deleted_at IS NULL',
+    [req.params.id, req.farmId]
+  );
+  if (linked.rows.length && linked.rows[0].load_id) {
+    return res.status(400).json({ error: 'This expense is linked to a load — edit the load to change it.' });
+  }
   await pool.query(
     'UPDATE expenses SET deleted_at=NOW() WHERE id=$1 AND farm_id=$2',
     [req.params.id, req.farmId]
