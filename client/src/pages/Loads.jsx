@@ -519,7 +519,7 @@ export default function Loads() {
                             key={row.id}
                             onClick={() => setViewRow(row)}
                             className={`px-1.5 py-1 rounded cursor-pointer text-[10px] leading-tight border-l-2 ${
-                              row.type === 'Forage' ? 'border-emerald-500 bg-emerald-900/20 hover:bg-emerald-900/40' : 'border-amber-500 bg-amber-900/20 hover:bg-amber-900/40'
+                              row.net_weight ? 'border-green-500 bg-green-900/20 hover:bg-green-900/40' : 'border-amber-500 bg-amber-900/20 hover:bg-amber-900/40'
                             }`}
                           >
                             <div className="text-slate-200 truncate font-medium">{row.customer_name || '—'}</div>
