@@ -3,7 +3,7 @@ import { api } from '../lib/api.js';
 import Modal from '../components/Modal.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import { useFarm } from '../context/FarmContext.jsx';
-import { Plus, Pencil, Trash2, Filter, FileImage, Calendar, CheckCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Filter, FileImage, Calendar, CheckCircle, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import ImageUpload from '../components/ImageUpload.jsx';
 import { formatDate } from '../lib/format.js';
 
@@ -141,6 +141,11 @@ export default function Loads() {
   const [driverUpdate, setDriverUpdate] = useState(null);
   const [driverForm, setDriverForm] = useState(emptyDriverUpdate);
   const [editingRateId, setEditingRateId] = useState(null);
+  const [view, setView] = useState('list'); // 'list' | 'calendar'
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
 
   const loadData = async () => {
     const [l, c, f, co] = await Promise.all([
@@ -362,15 +367,49 @@ export default function Loads() {
   const baseHeaders = ['', 'Status', 'Date', 'Customer', 'Field', 'Commodity', 'Shipper', 'Driver / Truck', 'Bales', 'BOL #', 'Gross', 'Tare', 'Net (lbs)', 'Tons', 'Type'];
   const headers = isAdmin ? [...baseHeaders, 'Rate ($/ton)', 'Gross Pay'] : baseHeaders;
 
+  // Calendar view: group the same filtered loads by date for a month grid
+  const loadsByDate = filtered.reduce((acc, r) => {
+    const key = r.date ? r.date.slice(0, 10) : '';
+    (acc[key] = acc[key] || []).push(r);
+    return acc;
+  }, {});
+  const toISODate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const todayISO = toISODate(new Date());
+  const calendarCells = (() => {
+    const start = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
+    const daysInMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0).getDate();
+    const cells = Array(start.getDay()).fill(null);
+    for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), d));
+    while (cells.length % 7 !== 0) cells.push(null);
+    return cells;
+  })();
+  const changeMonth = (delta) => setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth() + delta, 1));
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
       <PageHeader
         title="Loads"
         subtitle={`${rows.length} total haul tickets`}
         action={
-          <button className="btn-primary" onClick={openAdd}>
-            <Plus size={15} /> New Load
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center rounded-lg border border-slate-800 overflow-hidden">
+              <button
+                onClick={() => setView('list')}
+                className={`px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors ${view === 'list' ? 'bg-soil-500/30 text-soil-300' : 'text-slate-400 hover:text-slate-200'}`}
+              >
+                <List size={13} /> List
+              </button>
+              <button
+                onClick={() => setView('calendar')}
+                className={`px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors ${view === 'calendar' ? 'bg-soil-500/30 text-soil-300' : 'text-slate-400 hover:text-slate-200'}`}
+              >
+                <Calendar size={13} /> Calendar
+              </button>
+            </div>
+            <button className="btn-primary" onClick={openAdd}>
+              <Plus size={15} /> New Load
+            </button>
+          </div>
         }
       />
 
@@ -439,6 +478,63 @@ export default function Loads() {
 
       {loading ? (
         <div className="text-slate-500 text-sm py-8 text-center">Loading…</div>
+      ) : view === 'calendar' ? (
+        <div className="card overflow-hidden p-0">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+            <button className="btn-secondary !px-2 !py-1.5" onClick={() => changeMonth(-1)}><ChevronLeft size={15} /></button>
+            <div className="flex items-center gap-3">
+              <div className="text-sm font-semibold text-slate-200">
+                {calendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </div>
+              <button
+                className="text-xs text-soil-400 hover:text-soil-300"
+                onClick={() => setCalendarMonth(new Date(new Date().getFullYear(), new Date().getMonth(), 1))}
+              >
+                Today
+              </button>
+            </div>
+            <button className="btn-secondary !px-2 !py-1.5" onClick={() => changeMonth(1)}><ChevronRight size={15} /></button>
+          </div>
+          <div className="grid grid-cols-7 border-b border-slate-800">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+              <div key={d} className="px-2 py-2 text-center text-xs text-slate-500 font-medium uppercase tracking-wider">{d}</div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7">
+            {calendarCells.map((date, i) => {
+              const key = date ? toISODate(date) : `blank-${i}`;
+              const dayLoads = date ? (loadsByDate[toISODate(date)] || []) : [];
+              const isToday = date && toISODate(date) === todayISO;
+              return (
+                <div
+                  key={key}
+                  className={`min-h-[110px] p-1.5 border-b border-r border-slate-800 last:border-r-0 ${!date ? 'bg-slate-950/50' : ''}`}
+                >
+                  {date && (
+                    <>
+                      <div className={`text-xs font-mono mb-1 ${isToday ? 'text-soil-300 font-semibold' : 'text-slate-500'}`}>{date.getDate()}</div>
+                      <div className="space-y-1 max-h-[130px] overflow-y-auto">
+                        {dayLoads.map(row => (
+                          <div
+                            key={row.id}
+                            onClick={() => setViewRow(row)}
+                            className={`px-1.5 py-1 rounded cursor-pointer text-[10px] leading-tight border-l-2 ${
+                              row.type === 'Forage' ? 'border-emerald-500 bg-emerald-900/20 hover:bg-emerald-900/40' : 'border-amber-500 bg-amber-900/20 hover:bg-amber-900/40'
+                            }`}
+                          >
+                            <div className="text-slate-200 truncate font-medium">{row.customer_name || '—'}</div>
+                            <div className="text-slate-400 truncate">{row.field_name || '—'}</div>
+                            <div className="text-slate-500 truncate">{cropLabel(row)}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       ) : (
         <div className="card overflow-hidden p-0">
           <div className="overflow-x-auto">
