@@ -88,7 +88,7 @@ export default function Dashboard() {
             <div className="p-2 rounded-lg bg-blue-900/50 text-blue-400"><Package size={16} /></div>
             <div>
               <div className="text-sm text-blue-300 font-medium">Contracted Inventory Value</div>
-              <div className="text-xs text-slate-500">Open stacks/crops only, priced at their current contracted rate — not cash received.</div>
+              <div className="text-xs text-slate-500">Unshipped tons on open stacks/crops only, priced at their current contracted rate — not cash received.</div>
             </div>
           </div>
           <span className="text-2xl font-semibold text-blue-300">{fmt(data.contractedInventoryValue)}</span>

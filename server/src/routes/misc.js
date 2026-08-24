@@ -9,7 +9,7 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
   try {
     const fid = req.farmId;
 
-    const [incomeRes, expenseRes, loadsRes, recentRes, fieldIncomeRes, inventoryRes, inventoryValueRes] = await Promise.all([
+    const [incomeRes, expenseRes, loadsRes, recentRes, fieldIncomeRes, inventoryRes] = await Promise.all([
       // Realized income - actual money received, one row per hauled load
       // (plus any manual entries). This is real, not projected.
       pool.query('SELECT COALESCE(SUM(amount),0) as total FROM income WHERE farm_id=$1 AND deleted_at IS NULL', [fid]),
@@ -34,7 +34,7 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
       // so remaining inventory (estimated - hauled) can be grouped by
       // cutting/type/commodity in JS below.
       pool.query(`SELECT c.type, c.cutting, c.forage_grade, c.type_of_forage, c.type_crop,
-          c.estimated_stack_tonnage, c.estimated_total_tons,
+          c.estimated_stack_tonnage, c.estimated_total_tons, c.price_per_ton,
           COALESCE(lh.hauled_tons, 0) as hauled_tons
         FROM commodities c
         LEFT JOIN (
@@ -43,26 +43,29 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
           GROUP BY commodity_id
         ) lh ON lh.commodity_id = c.id
         WHERE c.farm_id=$1 AND c.deleted_at IS NULL AND c.is_closed = false`, [fid]),
-      // Contracted inventory value - the estimated_value (server-computed
-      // per-commodity, priced against history) of stacks/crops still open.
-      // Deliberately excludes closed stacks and is never combined with
-      // realized income into one profit figure - it's inventory on hand,
-      // not cash received.
-      pool.query(`SELECT COALESCE(SUM(estimated_value), 0) as total
-        FROM commodities WHERE farm_id=$1 AND deleted_at IS NULL AND is_closed = false`, [fid]),
     ]);
 
     const totalIncome = parseFloat(incomeRes.rows[0].total);
     const totalExpenses = parseFloat(expenseRes.rows[0].total);
-    const contractedInventoryValue = parseFloat(inventoryValueRes.rows[0].total);
     const loads = loadsRes.rows[0];
 
+    // Contracted inventory value is what's still physically on hand -
+    // remaining (unshipped) tons x current price per ton, NOT
+    // commodities.estimated_value (which is actual_value + remaining x
+    // price, i.e. total contract value including tonnage already
+    // shipped). Using estimated_value here made this figure grow when a
+    // commodity was added but never shrink as it shipped, since shipping
+    // just moves value from the "remaining" term into "actual_value"
+    // within the same total. Reuses the exact same remaining-tons figure
+    // as the tons-left panels below so the two can never disagree.
     const withRemaining = inventoryRes.rows.map(r => {
       const estimated = r.type === 'Forage' ? r.estimated_stack_tonnage : r.estimated_total_tons;
       if (estimated == null) return null;
       const remaining = Math.max(parseFloat(estimated) - parseFloat(r.hauled_tons), 0);
-      return { ...r, remaining };
+      const remainingValue = remaining * (parseFloat(r.price_per_ton) || 0);
+      return { ...r, remaining, remainingValue };
     }).filter(Boolean);
+    const contractedInventoryValue = withRemaining.reduce((s, r) => s + r.remainingValue, 0);
 
     const groupRemaining = (rows, key) => {
       const totals = {};
