@@ -36,7 +36,7 @@ export const api = {
     list: () => req('GET', '/team'),
     setRole: (clerkUserId, role) => req('PUT', `/team/${clerkUserId}/role`, { role }),
   },
-  dashboard: () => req('GET', '/dashboard'),
+  dashboard: (year) => req('GET', year ? `/dashboard?year=${year}` : '/dashboard'),
   customers: {
     list: () => req('GET', '/customers'),
     create: (b) => req('POST', '/customers', b),

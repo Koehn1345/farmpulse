@@ -61,12 +61,17 @@ function TonsPillGrid({ title, data }) {
 export default function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  // '' means all years
+  const [year, setYear] = useState(String(new Date().getFullYear()));
 
   useEffect(() => {
-    api.dashboard().then(setData).finally(() => setLoading(false));
-  }, []);
+    setLoading(true);
+    api.dashboard(year).then(setData).finally(() => setLoading(false));
+  }, [year]);
 
-  if (loading) return (
+  // Only block the page on the first load - switching years keeps the
+  // current numbers on screen until the new ones arrive.
+  if (loading && !data) return (
     <div className="p-8 flex items-center justify-center text-slate-500">
       <div className="text-center">
         <div className="w-8 h-8 border-2 border-soil-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
@@ -79,9 +84,15 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-display text-slate-100">Dashboard</h1>
-        <p className="text-slate-400 mt-1 text-sm">Season overview and recent activity</p>
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-display text-slate-100">Dashboard</h1>
+          <p className="text-slate-400 mt-1 text-sm">{year ? `${year} season overview` : 'All-time overview'} and recent activity</p>
+        </div>
+        <select className={`input w-auto ${loading ? 'opacity-60' : ''}`} value={year} onChange={e => setYear(e.target.value)}>
+          {[...new Set([year, ...data.years.map(String)])].filter(Boolean).sort((a, b) => b - a).map(y => <option key={y} value={y}>{y}</option>)}
+          <option value="">All Years</option>
+        </select>
       </div>
 
       {/* Inventory on hand - deliberately separate from realized income below */}

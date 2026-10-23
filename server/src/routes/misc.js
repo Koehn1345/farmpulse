@@ -8,28 +8,33 @@ const router = Router();
 router.get('/dashboard', requireAdmin, async (req, res) => {
   try {
     const fid = req.farmId;
+    // Optional ?year= filter. Income/expenses/loads are matched on their
+    // date's calendar year; inventory on the commodity's season year.
+    // $2 is NULL when no year is given, which disables every filter.
+    const year = parseInt(req.query.year, 10) || null;
+    const inYear = (col) => `($2::int IS NULL OR EXTRACT(YEAR FROM ${col}) = $2)`;
 
-    const [incomeRes, expenseRes, loadsRes, recentRes, fieldIncomeRes, inventoryRes] = await Promise.all([
+    const [incomeRes, expenseRes, loadsRes, recentRes, fieldIncomeRes, inventoryRes, yearsRes] = await Promise.all([
       // Realized income - actual money received, one row per hauled load
       // (plus any manual entries). This is real, not projected.
-      pool.query('SELECT COALESCE(SUM(amount),0) as total FROM income WHERE farm_id=$1 AND deleted_at IS NULL', [fid]),
-      pool.query('SELECT COALESCE(SUM(amount),0) as total FROM expenses WHERE farm_id=$1 AND deleted_at IS NULL', [fid]),
+      pool.query(`SELECT COALESCE(SUM(amount),0) as total FROM income WHERE farm_id=$1 AND deleted_at IS NULL AND ${inYear('date')}`, [fid, year]),
+      pool.query(`SELECT COALESCE(SUM(amount),0) as total FROM expenses WHERE farm_id=$1 AND deleted_at IS NULL AND ${inYear('date')}`, [fid, year]),
       pool.query(`SELECT
         COUNT(*) as total,
         COUNT(*) FILTER (WHERE type='Forage') as forage,
         COUNT(*) FILTER (WHERE type='Grain') as grain,
         COALESCE(SUM(net_weight)/2000, 0) as net_tons
-        FROM loads WHERE farm_id=$1 AND deleted_at IS NULL`, [fid]),
+        FROM loads WHERE farm_id=$1 AND deleted_at IS NULL AND ${inYear('date')}`, [fid, year]),
       pool.query(`SELECT l.*, c.company_name as customer_name, f.field_name
         FROM loads l
         LEFT JOIN customers c ON c.id = l.customer_id
         LEFT JOIN fields f ON f.id = l.field_id
-        WHERE l.farm_id=$1 AND l.deleted_at IS NULL
-        ORDER BY l.date DESC, l.created_at DESC LIMIT 5`, [fid]),
+        WHERE l.farm_id=$1 AND l.deleted_at IS NULL AND ${inYear('l.date')}
+        ORDER BY l.date DESC, l.created_at DESC LIMIT 5`, [fid, year]),
       pool.query(`SELECT i.field_id, f.field_name, COALESCE(SUM(i.amount),0) as value
         FROM income i LEFT JOIN fields f ON f.id = i.field_id
-        WHERE i.farm_id=$1 AND i.deleted_at IS NULL
-        GROUP BY i.field_id, f.field_name ORDER BY value DESC`, [fid]),
+        WHERE i.farm_id=$1 AND i.deleted_at IS NULL AND ${inYear('i.date')}
+        GROUP BY i.field_id, f.field_name ORDER BY value DESC`, [fid, year]),
       // Per-commodity estimated tonnage and tons already hauled against it,
       // so remaining inventory (estimated - hauled) can be grouped by
       // cutting/type/commodity in JS below.
@@ -43,7 +48,15 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
           GROUP BY commodity_id
         ) lh ON lh.commodity_id = c.id
         LEFT JOIN fields f ON f.id = c.field_id
-        WHERE c.farm_id=$1 AND c.deleted_at IS NULL AND c.is_closed = false`, [fid]),
+        WHERE c.farm_id=$1 AND c.deleted_at IS NULL AND c.is_closed = false
+          AND ($2::int IS NULL OR c.year = $2)`, [fid, year]),
+      // Every year that has any data, for the dashboard's year picker
+      pool.query(`SELECT DISTINCT y FROM (
+          SELECT EXTRACT(YEAR FROM date)::int AS y FROM income WHERE farm_id=$1 AND deleted_at IS NULL
+          UNION SELECT EXTRACT(YEAR FROM date)::int FROM expenses WHERE farm_id=$1 AND deleted_at IS NULL
+          UNION SELECT EXTRACT(YEAR FROM date)::int FROM loads WHERE farm_id=$1 AND deleted_at IS NULL
+          UNION SELECT year FROM commodities WHERE farm_id=$1 AND deleted_at IS NULL AND year IS NOT NULL
+        ) t ORDER BY y DESC`, [fid]),
     ]);
 
     const totalIncome = parseFloat(incomeRes.rows[0].total);
@@ -95,6 +108,7 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
     const grainRows = withRemaining.filter(r => r.type === 'Grain');
 
     res.json({
+      years: yearsRes.rows.map(r => r.y),
       totalIncome,
       totalExpenses,
       netProfit: totalIncome - totalExpenses,
