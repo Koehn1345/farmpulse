@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { DollarSign, Truck, Weight, TrendingUp, Package } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { DollarSign, Truck, Weight, TrendingUp, Package, Wallet } from 'lucide-react';
 
 const fmt = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 const fmtNum = (n) => new Intl.NumberFormat('en-US').format(n);
@@ -22,12 +22,15 @@ function StatCard({ label, value, sub, icon: Icon, accent }) {
   );
 }
 
-const CustomTooltip = ({ active, payload, label, formatter = fmt }) => {
+const FieldIncomeTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
+    const { realized, inventory } = payload[0].payload;
     return (
       <div className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm">
-        <div className="font-medium text-slate-200">{label}</div>
-        <div className="text-soil-300">{formatter(payload[0].value)}</div>
+        <div className="font-medium text-slate-200 mb-1">{label}</div>
+        <div className="text-emerald-400">Realized: {fmt(realized)}</div>
+        <div className="text-blue-400">Inventory: {fmt(inventory)}</div>
+        <div className="text-slate-200 mt-1 pt-1 border-t border-slate-700">Total: {fmt(realized + inventory)}</div>
       </div>
     );
   }
@@ -134,20 +137,43 @@ export default function Dashboard() {
         />
       </div>
 
+      {/* Projected season - realized income plus what's still in inventory */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <StatCard
+          label="Inventory Income"
+          value={fmt(data.contractedInventoryValue)}
+          sub="Unshipped tons at contracted price"
+          icon={Package}
+          accent="bg-blue-900/50 text-blue-400"
+        />
+        <StatCard
+          label="Inventory + Realized Income"
+          value={fmt(data.projectedIncome)}
+          sub={`${fmt(data.totalIncome)} realized + ${fmt(data.contractedInventoryValue)} inventory`}
+          icon={Wallet}
+          accent="bg-emerald-900/50 text-emerald-400"
+        />
+        <StatCard
+          label="Projected Net Profit"
+          value={fmt(data.projectedNetProfit)}
+          sub={`${fmt(data.totalExpenses)} expenses`}
+          icon={TrendingUp}
+          accent="bg-soil-900/50 text-soil-400"
+        />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        {/* Income by Field chart */}
+        {/* Income by Field chart - realized stacked under inventory */}
         <div className="card lg:col-span-2">
-          <h2 className="text-sm font-semibold text-slate-300 mb-4">Realized Income by Field</h2>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={data.incomeByField} barSize={32}>
+          <h2 className="text-sm font-semibold text-slate-300 mb-4">Income by Field</h2>
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={data.fieldIncome} barSize={32}>
               <XAxis dataKey="name" tick={{ fill: '#a1a1aa', fontSize: 12 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                {data.incomeByField.map((_, i) => (
-                  <Cell key={i} fill={`hsl(${30 + i * 40}, 60%, ${45 + i * 5}%)`} />
-                ))}
-              </Bar>
+              <Tooltip content={<FieldIncomeTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Bar dataKey="realized" name="Realized" stackId="income" fill="#34d399" />
+              <Bar dataKey="inventory" name="Inventory" stackId="income" fill="#60a5fa" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

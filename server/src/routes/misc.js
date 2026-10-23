@@ -26,14 +26,14 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
         LEFT JOIN fields f ON f.id = l.field_id
         WHERE l.farm_id=$1 AND l.deleted_at IS NULL
         ORDER BY l.date DESC, l.created_at DESC LIMIT 5`, [fid]),
-      pool.query(`SELECT f.field_name, COALESCE(SUM(i.amount),0) as value
-        FROM income i JOIN fields f ON f.id = i.field_id
+      pool.query(`SELECT i.field_id, f.field_name, COALESCE(SUM(i.amount),0) as value
+        FROM income i LEFT JOIN fields f ON f.id = i.field_id
         WHERE i.farm_id=$1 AND i.deleted_at IS NULL
-        GROUP BY f.field_name ORDER BY value DESC`, [fid]),
+        GROUP BY i.field_id, f.field_name ORDER BY value DESC`, [fid]),
       // Per-commodity estimated tonnage and tons already hauled against it,
       // so remaining inventory (estimated - hauled) can be grouped by
       // cutting/type/commodity in JS below.
-      pool.query(`SELECT c.type, c.cutting, c.forage_grade, c.type_of_forage, c.type_crop,
+      pool.query(`SELECT c.type, c.field_id, f.field_name, c.cutting, c.forage_grade, c.type_of_forage, c.type_crop,
           c.estimated_stack_tonnage, c.estimated_total_tons, c.price_per_ton,
           COALESCE(lh.hauled_tons, 0) as hauled_tons
         FROM commodities c
@@ -42,6 +42,7 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
           FROM loads WHERE farm_id=$1 AND deleted_at IS NULL AND commodity_id IS NOT NULL
           GROUP BY commodity_id
         ) lh ON lh.commodity_id = c.id
+        LEFT JOIN fields f ON f.id = c.field_id
         WHERE c.farm_id=$1 AND c.deleted_at IS NULL AND c.is_closed = false`, [fid]),
     ]);
 
@@ -67,6 +68,18 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
     }).filter(Boolean);
     const contractedInventoryValue = withRemaining.reduce((s, r) => s + r.remainingValue, 0);
 
+    // Realized income and unshipped inventory value side by side per field,
+    // so the farm's projected income for the season can be broken down by
+    // field. Rows with no field land in a "No Field" bucket so the per-field
+    // totals always add up to the stat cards.
+    const byField = {};
+    const fieldEntry = (id, name) => (byField[id ?? 'none'] ??= { name: name || 'No Field', realized: 0, inventory: 0 });
+    for (const r of fieldIncomeRes.rows) fieldEntry(r.field_id, r.field_name).realized += parseFloat(r.value);
+    for (const r of withRemaining) fieldEntry(r.field_id, r.field_name).inventory += r.remainingValue;
+    const fieldIncome = Object.values(byField)
+      .filter(f => f.realized || f.inventory)
+      .sort((a, b) => (b.realized + b.inventory) - (a.realized + a.inventory));
+
     const groupRemaining = (rows, key) => {
       const totals = {};
       for (const r of rows) {
@@ -86,11 +99,13 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
       totalExpenses,
       netProfit: totalIncome - totalExpenses,
       contractedInventoryValue,
+      projectedIncome: totalIncome + contractedInventoryValue,
+      projectedNetProfit: totalIncome + contractedInventoryValue - totalExpenses,
       totalLoads: parseInt(loads.total),
       forageLoads: parseInt(loads.forage),
       grainLoads: parseInt(loads.grain),
       totalNetTons: parseFloat(loads.net_tons).toFixed(1),
-      incomeByField: fieldIncomeRes.rows.map(r => ({ name: r.field_name, value: parseFloat(r.value) })),
+      fieldIncome,
       recentLoads: recentRes.rows,
       tonsByCutting: groupRemaining(forageRows, 'cutting').sort((a, b) => cuttingOrder.indexOf(a.name) - cuttingOrder.indexOf(b.name)),
       tonsByType: groupRemaining(forageRows, 'forage_grade').sort(byTonsDesc),
