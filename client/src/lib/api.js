@@ -48,6 +48,7 @@ export const api = {
     create: (b) => req('POST', '/fields', b),
     update: (id, b) => req('PUT', `/fields/${id}`, b),
     setActive: (id, is_active) => req('PUT', `/fields/${id}/active`, { is_active }),
+    pnl: (id, year) => req('GET', year ? `/fields/${id}/pnl?year=${year}` : `/fields/${id}/pnl`),
     delete: (id) => req('DELETE', `/fields/${id}`),
   },
   cropHistory: {

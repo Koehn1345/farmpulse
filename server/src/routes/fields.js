@@ -12,6 +12,55 @@ router.get('/', async (req, res) => {
   res.json(rows);
 });
 
+// Per-field P&L - admin only, mirrors the dashboard's figures for one field.
+// Optional ?year= filters income/expenses by their date's calendar year and
+// inventory by the commodity's season year.
+router.get('/:id/pnl', requireAdmin, async (req, res) => {
+  try {
+    const params = [req.params.id, req.farmId, parseInt(req.query.year, 10) || null];
+    const inYear = (col) => `($3::int IS NULL OR EXTRACT(YEAR FROM ${col}) = $3)`;
+    const [incomeRes, expenseRes, inventoryRes, yearsRes] = await Promise.all([
+      pool.query(`SELECT COALESCE(SUM(amount),0) as total FROM income
+        WHERE field_id=$1 AND farm_id=$2 AND deleted_at IS NULL AND ${inYear('date')}`, params),
+      pool.query(`SELECT COALESCE(SUM(amount),0) as total FROM expenses
+        WHERE field_id=$1 AND farm_id=$2 AND deleted_at IS NULL AND ${inYear('date')}`, params),
+      // Same definition as the dashboard's contracted inventory value:
+      // unshipped tons on open commodities x current price per ton.
+      pool.query(`SELECT COALESCE(SUM(
+          GREATEST(CASE WHEN c.type = 'Forage' THEN c.estimated_stack_tonnage ELSE c.estimated_total_tons END
+            - COALESCE(lh.hauled_tons, 0), 0) * COALESCE(c.price_per_ton, 0)
+        ), 0) as total
+        FROM commodities c
+        LEFT JOIN (
+          SELECT commodity_id, SUM(net_weight)/2000 as hauled_tons
+          FROM loads WHERE farm_id=$2 AND deleted_at IS NULL AND commodity_id IS NOT NULL
+          GROUP BY commodity_id
+        ) lh ON lh.commodity_id = c.id
+        WHERE c.field_id=$1 AND c.farm_id=$2 AND c.deleted_at IS NULL AND c.is_closed = false
+          AND ($3::int IS NULL OR c.year = $3)`, params),
+      // Years with any income/expense for this field, for the year picker
+      // (commodity years are already known client-side)
+      pool.query(`SELECT DISTINCT EXTRACT(YEAR FROM date)::int AS y FROM income WHERE field_id=$1 AND farm_id=$2 AND deleted_at IS NULL
+        UNION SELECT EXTRACT(YEAR FROM date)::int FROM expenses WHERE field_id=$1 AND farm_id=$2 AND deleted_at IS NULL`, params.slice(0, 2)),
+    ]);
+    const realizedIncome = parseFloat(incomeRes.rows[0].total);
+    const expenses = parseFloat(expenseRes.rows[0].total);
+    const inventoryValue = parseFloat(inventoryRes.rows[0].total);
+    res.json({
+      years: yearsRes.rows.map(r => r.y),
+      realizedIncome,
+      expenses,
+      netProfit: realizedIncome - expenses,
+      inventoryValue,
+      projectedIncome: realizedIncome + inventoryValue,
+      projectedNetProfit: realizedIncome + inventoryValue - expenses,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post('/', requireAdmin, async (req, res) => {
   const { field_name, acres, google_pin, ownership, lease_payment } = req.body;
   const { rows } = await pool.query(

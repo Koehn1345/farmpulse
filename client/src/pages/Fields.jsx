@@ -10,6 +10,16 @@ const emptyCrop = { year: String(new Date().getFullYear()), crop: '', notes: '' 
 
 const empty = { field_name: '', acres: '', google_pin: '', ownership: 'Own', lease_payment: '' };
 const typeLabel = (t) => t === 'Forage' ? 'Stack' : 'Grain';
+const fmt = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+
+function PnlRow({ label, value, className, bold }) {
+  return (
+    <div className="flex justify-between items-center py-1.5 border-b border-slate-800/60">
+      <span className={bold ? 'font-semibold text-slate-200' : 'text-slate-400'}>{label}</span>
+      <span className={`font-mono ${bold ? 'font-bold' : 'font-medium'} ${className}`}>{value}</span>
+    </div>
+  );
+}
 
 export default function Fields() {
   const { isAdmin } = useFarm();
@@ -27,6 +37,7 @@ export default function Fields() {
   const [savingCrop, setSavingCrop] = useState(false);
   const [loadError, setLoadError] = useState(null);
   const [statusTab, setStatusTab] = useState('active');
+  const [pnl, setPnl] = useState(null);
 
   const load = async () => {
     setLoadError(null);
@@ -40,6 +51,17 @@ export default function Fields() {
     }
   };
   useEffect(() => { load(); }, []);
+
+  // Field P&L follows the modal's year filter. Admin-only, like the dashboard.
+  useEffect(() => {
+    setPnl(null);
+    if (!viewField || !isAdmin) return;
+    let stale = false;
+    api.fields.pnl(viewField.id, yearFilter === 'All' ? null : yearFilter)
+      .then(p => { if (!stale) setPnl(p); })
+      .catch(() => {});
+    return () => { stale = true; };
+  }, [viewField?.id, yearFilter, isAdmin]);
 
   const openAddCrop = () => setCropForm(emptyCrop);
   const openEditCrop = (entry) => setCropForm({ id: entry.id, year: String(entry.year), crop: entry.crop, notes: entry.notes || '' });
@@ -234,7 +256,7 @@ export default function Fields() {
 
       {viewField && (() => {
         const fieldCommodities = commodities.filter(c => c.field_id === viewField.id);
-        const years = [...new Set(fieldCommodities.map(c => c.year))].sort((a, b) => b - a);
+        const years = [...new Set([...fieldCommodities.map(c => c.year), ...(pnl?.years || [])].filter(Boolean))].sort((a, b) => b - a);
         const filtered = yearFilter === 'All' ? fieldCommodities : fieldCommodities.filter(c => c.year === yearFilter);
         const fieldCropHistory = cropHistory.filter(h => h.field_id === viewField.id).sort((a, b) => b.year - a.year);
         return (
@@ -276,9 +298,8 @@ export default function Fields() {
               )}
             </div>
 
-            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Stacks & Grain</div>
             {years.length > 0 && (
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex flex-wrap items-center gap-2 mb-5">
                 <button
                   onClick={() => setYearFilter('All')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
@@ -300,6 +321,35 @@ export default function Fields() {
                 ))}
               </div>
             )}
+
+            {isAdmin && (
+              <div className="mb-5 pb-4 border-b border-slate-800">
+                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                  P&amp;L Summary{yearFilter !== 'All' ? ` — ${yearFilter}` : ' — All Years'}
+                </div>
+                {!pnl ? (
+                  <div className="text-xs text-slate-500">Loading…</div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 text-sm">
+                    <div>
+                      <PnlRow label="Realized Income" value={fmt(pnl.realizedIncome)} className="text-emerald-400" />
+                      <PnlRow label="Expenses" value={`- ${fmt(pnl.expenses)}`} className="text-red-400" />
+                      <PnlRow label="Net Profit" value={fmt(pnl.netProfit)} className={pnl.netProfit >= 0 ? 'text-soil-300' : 'text-red-400'} bold />
+                    </div>
+                    <div>
+                      <PnlRow label="Inventory Income" value={fmt(pnl.inventoryValue)} className="text-blue-400" />
+                      <PnlRow label="Inventory + Realized" value={fmt(pnl.projectedIncome)} className="text-slate-200" />
+                      <PnlRow label="Projected Net Profit" value={fmt(pnl.projectedNetProfit)} className={pnl.projectedNetProfit >= 0 ? 'text-soil-300' : 'text-red-400'} bold />
+                      {parseFloat(viewField.acres) > 0 && (
+                        <PnlRow label="Projected Net / Acre" value={fmt(pnl.projectedNetProfit / parseFloat(viewField.acres))} className="text-slate-400" />
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Stacks & Grain</div>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-800">
