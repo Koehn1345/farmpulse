@@ -54,16 +54,16 @@ router.post('/', requireRole('admin', 'employee'), async (req, res) => {
         farm_id, type, field_id, year, price_per_ton, buyer_customer_id,
         stack_number, type_of_forage, forage_grade, cutting, bale_count, avg_bale_weight_lbs,
         estimated_stack_tonnage, test_pdf_url, tarp, notes,
-        type_crop, seed_details, estimated_tons_per_acre, estimated_total_tons,
+        type_crop, seed_details, bag_number, estimated_tons_per_acre, estimated_total_tons,
         actual_tons_per_acre
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21) RETURNING *`,
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22) RETURNING *`,
       [
         req.farmId, b.type, b.field_id || null, b.year || new Date().getFullYear(), initialPrice, initialBuyer,
         b.stack_number, b.type_of_forage, b.forage_grade || null, b.cutting,
         b.bale_count || null, b.avg_bale_weight_lbs || null,
         b.estimated_stack_tonnage || null, b.test_pdf_url || null,
         b.tarp || null, b.notes || null,
-        b.type_crop, b.seed_details,
+        b.type_crop, b.seed_details, b.bag_number || null,
         b.estimated_tons_per_acre || null, b.estimated_total_tons || null,
         b.actual_tons_per_acre || null,
       ]
@@ -105,15 +105,15 @@ router.put('/:id', requireRole('admin', 'employee'), async (req, res) => {
         avg_bale_weight_lbs=$9, estimated_stack_tonnage=$10,
         tarp=$11, notes=$12,
         type_crop=$13, seed_details=$14, estimated_tons_per_acre=$15,
-        estimated_total_tons=$16, actual_tons_per_acre=$17
-       WHERE id=$18 AND farm_id=$19 AND deleted_at IS NULL RETURNING *`,
+        estimated_total_tons=$16, actual_tons_per_acre=$17, bag_number=$18
+       WHERE id=$19 AND farm_id=$20 AND deleted_at IS NULL RETURNING *`,
       [
         b.type, b.field_id || null, b.year || new Date().getFullYear(),
         b.stack_number, b.type_of_forage, b.forage_grade || null, b.cutting, b.bale_count || null,
         b.avg_bale_weight_lbs || null, b.estimated_stack_tonnage || null,
         b.tarp || null, b.notes || null,
         b.type_crop, b.seed_details, b.estimated_tons_per_acre || null,
-        b.estimated_total_tons || null, b.actual_tons_per_acre || null,
+        b.estimated_total_tons || null, b.actual_tons_per_acre || null, b.bag_number || null,
         req.params.id, req.farmId,
       ]
     );

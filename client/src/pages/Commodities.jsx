@@ -9,7 +9,7 @@ import { formatDate } from '../lib/format.js';
 
 const currentYear = new Date().getFullYear();
 const emptyForage = { type: 'Forage', field_id: '', year: String(currentYear), price_per_ton: '', buyer_customer_id: '', stack_number: '', type_of_forage: '', forage_grade: '', cutting: '1st', tarp: 'No Tarp', bale_count: '', avg_bale_weight_lbs: '', actual_stack_tonnage: '', notes: '' };
-const emptyGrain = { type: 'Grain', field_id: '', year: String(currentYear), price_per_ton: '', buyer_customer_id: '', type_crop: '', seed_details: '', estimated_total_tons: '', actual_tons: '' };
+const emptyGrain = { type: 'Grain', field_id: '', year: String(currentYear), price_per_ton: '', buyer_customer_id: '', type_crop: '', seed_details: '', bag_number: '', estimated_total_tons: '', actual_tons: '' };
 const emptyPriceForm = { price_per_ton: '', buyer_customer_id: '', effective_date: '', note: '' };
 const TARP_OPTIONS = ['No Tarp', 'Top Tarp', 'Full Wrap'];
 const CUTTINGS = ['1st', '2nd', '3rd', '4th', '5th'];
@@ -246,7 +246,7 @@ export default function Commodities() {
             <table className="w-full text-sm whitespace-nowrap">
               <thead>
                 <tr className="border-b border-slate-800">
-                  {[...['Year', 'Crop', 'Field', 'Seed', 'Est. Tons', 'Tons Left', 'Actual Tons'], ...(isAdmin ? financialHeaders : [])].map(h => (
+                  {[...['Year', 'Crop', 'Field', 'Seed', 'Bag #', 'Est. Tons', 'Tons Left', 'Actual Tons'], ...(isAdmin ? financialHeaders : [])].map(h => (
                     <th key={h} className="text-left px-5 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -261,6 +261,7 @@ export default function Commodities() {
                     </td>
                     <td className="px-5 py-3 text-slate-200">{fieldName(row.field_id)}</td>
                     <td className="px-5 py-3 text-slate-400 text-xs">{row.seed_details || '—'}</td>
+                    <td className="px-5 py-3 font-mono text-xs text-slate-300">{row.bag_number || '—'}</td>
                     <td className="px-5 py-3 font-mono text-slate-300">{row.estimated_total_tons ? parseFloat(row.estimated_total_tons).toFixed(1) : '—'}</td>
                     <td className="px-5 py-3 font-mono">{row.estimated_total_tons != null ? tonsLeft(row).toFixed(1) : '—'}</td>
                     <td className="px-5 py-3">{row.actual_tons != null ? <span className="text-amber-400 font-mono">{parseFloat(row.actual_tons).toFixed(1)}</span> : <span className="text-slate-600 text-xs">Pending</span>}</td>
@@ -276,7 +277,7 @@ export default function Commodities() {
                     </>}
                   </tr>
                 ))}
-                {filtered.length === 0 && <tr><td colSpan={isAdmin ? 12 : 7} className="px-5 py-12 text-center text-slate-500">No grain fields yet.</td></tr>}
+                {filtered.length === 0 && <tr><td colSpan={isAdmin ? 13 : 8} className="px-5 py-12 text-center text-slate-500">No grain fields yet.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -429,11 +430,14 @@ export default function Commodities() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="label">Seed Variety</label><input className="input" name="seed_details" value={form.seed_details} onChange={handleChange} placeholder="WA8108…" /></div>
-                <div><label className="label">Estimated Tons</label><input className="input" type="number" name="estimated_total_tons" value={form.estimated_total_tons} onChange={handleChange} placeholder="250" step="0.1" /></div>
+                <div><label className="label">Bag Number</label><input className="input" name="bag_number" value={form.bag_number || ''} onChange={handleChange} placeholder="BAG-001" /></div>
               </div>
-              <div>
-                <label className="label">Actual Tons</label>
-                <input className="input bg-slate-800 text-slate-500" type="number" value={form.actual_tons} disabled placeholder="Auto-computed from loads" />
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="label">Estimated Tons</label><input className="input" type="number" name="estimated_total_tons" value={form.estimated_total_tons} onChange={handleChange} placeholder="250" step="0.1" /></div>
+                <div>
+                  <label className="label">Actual Tons</label>
+                  <input className="input bg-slate-800 text-slate-500" type="number" value={form.actual_tons} disabled placeholder="Auto-computed from loads" />
+                </div>
               </div>
               {isAdmin && modal === 'add' && (
                 <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-800">
@@ -505,6 +509,7 @@ export default function Commodities() {
                 <div><div className="label">Field</div><div className="text-slate-100">{fieldName(viewRow.field_id)}</div></div>
                 <div><div className="label">Crop Type</div><div className="text-slate-100">{viewRow.type_crop || '—'}</div></div>
                 <div><div className="label">Seed Variety</div><div className="text-slate-100">{viewRow.seed_details || '—'}</div></div>
+                <div><div className="label">Bag #</div><div className="text-slate-100">{viewRow.bag_number || '—'}</div></div>
                 <div><div className="label">Est. Tons</div><div className="font-mono text-slate-100">{viewRow.estimated_total_tons ? parseFloat(viewRow.estimated_total_tons).toFixed(1) : '—'}</div></div>
                 <div><div className="label">Tons Left</div><div className="font-mono text-slate-100">{viewRow.estimated_total_tons != null ? tonsLeft(viewRow).toFixed(1) : '—'}</div></div>
                 <div><div className="label">Actual Tons</div><div className="font-mono text-slate-100">{viewRow.actual_tons != null ? parseFloat(viewRow.actual_tons).toFixed(1) : '—'}</div></div>
