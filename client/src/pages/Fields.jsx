@@ -6,7 +6,8 @@ import PageHeader from '../components/PageHeader.jsx';
 import { useFarm } from '../context/FarmContext.jsx';
 import { Plus, Pencil, Trash2, MapPin, Ruler, Power } from 'lucide-react';
 
-const emptyCrop = { year: String(new Date().getFullYear()), crop: '', notes: '' };
+const currentYear = new Date().getFullYear();
+const emptyCrop = { year: String(currentYear), crop: '', notes: '' };
 
 const empty = { field_name: '', acres: '', google_pin: '', ownership: 'Own', lease_payment: '' };
 const typeLabel = (t) => t === 'Forage' ? 'Stack' : 'Grain';
@@ -32,7 +33,7 @@ export default function Fields() {
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
   const [viewField, setViewField] = useState(null);
-  const [yearFilter, setYearFilter] = useState('All');
+  const [yearFilter, setYearFilter] = useState(currentYear);
   const [cropForm, setCropForm] = useState(null);
   const [savingCrop, setSavingCrop] = useState(false);
   const [loadError, setLoadError] = useState(null);
@@ -182,7 +183,7 @@ export default function Fields() {
             </thead>
             <tbody>
               {displayedRows.map(row => (
-                <tr key={row.id} className="table-row cursor-pointer" onClick={() => { setViewField(row); setYearFilter('All'); setCropForm(null); }}>
+                <tr key={row.id} className="table-row cursor-pointer" onClick={() => { setViewField(row); setYearFilter(currentYear); setCropForm(null); }}>
                   <td className="px-6 py-4 font-medium text-slate-100 flex items-center gap-2">
                     <MapPin size={13} className="text-soil-400 shrink-0" />
                     {row.field_name}
@@ -256,7 +257,7 @@ export default function Fields() {
 
       {viewField && (() => {
         const fieldCommodities = commodities.filter(c => c.field_id === viewField.id);
-        const years = [...new Set([...fieldCommodities.map(c => c.year), ...(pnl?.years || [])].filter(Boolean))].sort((a, b) => b - a);
+        const years = [...new Set([...fieldCommodities.map(c => c.year), ...(pnl?.years || []), currentYear].filter(Boolean))].sort((a, b) => b - a);
         const filtered = yearFilter === 'All' ? fieldCommodities : fieldCommodities.filter(c => c.year === yearFilter);
         const fieldCropHistory = cropHistory.filter(h => h.field_id === viewField.id).sort((a, b) => b.year - a.year);
         return (
@@ -298,29 +299,27 @@ export default function Fields() {
               )}
             </div>
 
-            {years.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 mb-5">
+            <div className="flex flex-wrap items-center gap-2 mb-5">
+              <button
+                onClick={() => setYearFilter('All')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  yearFilter === 'All' ? 'bg-soil-500/30 text-soil-300 border border-soil-600' : 'text-slate-400 border border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                All Years
+              </button>
+              {years.map(y => (
                 <button
-                  onClick={() => setYearFilter('All')}
+                  key={y}
+                  onClick={() => setYearFilter(y)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    yearFilter === 'All' ? 'bg-soil-500/30 text-soil-300 border border-soil-600' : 'text-slate-400 border border-slate-800 hover:border-slate-700'
+                    yearFilter === y ? 'bg-soil-500/30 text-soil-300 border border-soil-600' : 'text-slate-400 border border-slate-800 hover:border-slate-700'
                   }`}
                 >
-                  All Years
+                  {y}
                 </button>
-                {years.map(y => (
-                  <button
-                    key={y}
-                    onClick={() => setYearFilter(y)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                      yearFilter === y ? 'bg-soil-500/30 text-soil-300 border border-soil-600' : 'text-slate-400 border border-slate-800 hover:border-slate-700'
-                    }`}
-                  >
-                    {y}
-                  </button>
-                ))}
-              </div>
-            )}
+              ))}
+            </div>
 
             {isAdmin && (
               <div className="mb-5 pb-4 border-b border-slate-800">
