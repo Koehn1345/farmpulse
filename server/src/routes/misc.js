@@ -39,7 +39,7 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
       // so remaining inventory (estimated - hauled) can be grouped by
       // cutting/type/commodity in JS below.
       pool.query(`SELECT c.type, c.field_id, f.field_name, c.cutting, c.forage_grade, c.type_of_forage, c.type_crop,
-          c.estimated_stack_tonnage, c.estimated_total_tons, c.price_per_ton,
+          c.estimated_stack_tonnage, c.estimated_total_tons, c.price_per_ton, c.is_closed,
           COALESCE(lh.hauled_tons, 0) as hauled_tons
         FROM commodities c
         LEFT JOIN (
@@ -48,7 +48,7 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
           GROUP BY commodity_id
         ) lh ON lh.commodity_id = c.id
         LEFT JOIN fields f ON f.id = c.field_id
-        WHERE c.farm_id=$1 AND c.deleted_at IS NULL AND c.is_closed = false
+        WHERE c.farm_id=$1 AND c.deleted_at IS NULL
           AND f.shipper_id IS NULL
           AND ($2::int IS NULL OR c.year = $2)`, [fid, year]),
       // Every year that has any data, for the dashboard's year picker
@@ -83,13 +83,16 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
     // just moves value from the "remaining" term into "actual_value"
     // within the same total. Reuses the exact same remaining-tons figure
     // as the tons-left panels below so the two can never disagree.
-    const withRemaining = inventoryRes.rows.map(r => {
+    // Closed commodities still count toward the season's starting
+    // (estimated) totals, but have nothing left in inventory.
+    const withEstimate = inventoryRes.rows.map(r => {
       const estimated = r.type === 'Forage' ? r.estimated_stack_tonnage : r.estimated_total_tons;
       if (estimated == null) return null;
       const remaining = Math.max(parseFloat(estimated) - parseFloat(r.hauled_tons), 0);
       const remainingValue = remaining * (parseFloat(r.price_per_ton) || 0);
-      return { ...r, remaining, remainingValue };
+      return { ...r, estimated: parseFloat(estimated), remaining, remainingValue };
     }).filter(Boolean);
+    const withRemaining = withEstimate.filter(r => !r.is_closed);
     const contractedInventoryValue = withRemaining.reduce((s, r) => s + r.remainingValue, 0);
 
     // Realized income and unshipped inventory value side by side per field,
@@ -104,19 +107,24 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
       .filter(f => f.realized || f.inventory)
       .sort((a, b) => (b.realized + b.inventory) - (a.realized + a.inventory));
 
-    const groupRemaining = (rows, key) => {
+    const groupTons = (rows, key, measure) => {
       const totals = {};
       for (const r of rows) {
         if (!r[key]) continue;
-        totals[r[key]] = (totals[r[key]] || 0) + r.remaining;
+        totals[r[key]] = (totals[r[key]] || 0) + r[measure];
       }
       return Object.entries(totals).map(([name, tons]) => ({ name, tons }));
     };
+    const groupRemaining = (rows, key) => groupTons(rows, key, 'remaining');
+    const groupEstimated = (rows, key) => groupTons(rows, key, 'estimated');
     const byTonsDesc = (a, b) => b.tons - a.tons;
     const cuttingOrder = ['1st', '2nd', '3rd', '4th', '5th'];
 
     const forageRows = withRemaining.filter(r => r.type === 'Forage');
     const grainRows = withRemaining.filter(r => r.type === 'Grain');
+    const forageEstRows = withEstimate.filter(r => r.type === 'Forage');
+    const grainEstRows = withEstimate.filter(r => r.type === 'Grain');
+    const byCutting = (a, b) => cuttingOrder.indexOf(a.name) - cuttingOrder.indexOf(b.name);
 
     res.json({
       years: yearsRes.rows.map(r => r.y),
@@ -137,6 +145,12 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
       tonsByType: groupRemaining(forageRows, 'forage_grade').sort(byTonsDesc),
       tonsByStackCommodity: groupRemaining(forageRows, 'type_of_forage').sort(byTonsDesc),
       tonsByGrainCommodity: groupRemaining(grainRows, 'type_crop').sort(byTonsDesc),
+      estByCutting: groupEstimated(forageEstRows, 'cutting').sort(byCutting),
+      estByType: groupEstimated(forageEstRows, 'forage_grade').sort(byTonsDesc),
+      estByCommodity: [
+        ...groupEstimated(forageEstRows, 'type_of_forage').sort(byTonsDesc),
+        ...groupEstimated(grainEstRows, 'type_crop').sort(byTonsDesc),
+      ],
     });
   } catch (err) {
     console.error(err);

@@ -114,6 +114,13 @@ export default function Dashboard() {
           <TonsPillGrid title="Inventory By Type" data={data.tonsByType} />
           <TonsPillGrid title="Inventory By Commodity" data={[...data.tonsByStackCommodity, ...data.tonsByGrainCommodity]} />
         </div>
+        <h2 className="text-sm font-semibold text-slate-300 mt-8 mb-1">Total Estimated</h2>
+        <p className="text-xs text-slate-500 mb-4">What you started with: estimated tons entered on each stack or bag, by cutting/type/commodity.</p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <TonsPillGrid title="Total Estimated By Cutting" data={data.estByCutting || []} />
+          <TonsPillGrid title="Total Estimated By Type" data={data.estByType || []} />
+          <TonsPillGrid title="Total Estimated By Commodity" data={data.estByCommodity || []} />
+        </div>
       </div>
 
       {/* Stats */}
