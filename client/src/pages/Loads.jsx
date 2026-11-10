@@ -226,12 +226,18 @@ export default function Loads() {
       if (name === 'fieldId') {
         const selected = commodities.find(c => c.id === f.commodityId);
         if (selected && selected.field_id !== value) next.commodityId = '';
+        // Outside shipper's field: the load ships under their name
+        const field = fields.find(x => x.id === value);
+        const prevField = fields.find(x => x.id === f.fieldId);
+        if (field?.shipper_id) next.shipper = field.shipper_name || f.shipper;
+        else if (prevField?.shipper_id && f.shipper === prevField.shipper_name) next.shipper = farm?.name || '';
       }
       return next;
     });
   };
 
   const typeLabel = (t) => t === 'Forage' ? 'Stacks' : 'Grain';
+  const selectedField = fields.find(f => f.id === form.fieldId);
   const cropLabel = (row) => (row.type === 'Forage' ? (row.stack_number || row.type_of_forage) : (row.bag_number ? `Bag ${row.bag_number}${row.type_crop ? ` (${row.type_crop})` : ''}` : row.type_crop)) || '—';
 
   const handleDriverChange = (e) => {
@@ -687,8 +693,16 @@ export default function Loads() {
               </div>
               <select className="input" name="fieldId" value={form.fieldId} onChange={handleChange}>
                 <option value="">Select…</option>
-                {fields.map(f => <option key={f.id} value={f.id}>{f.field_name}</option>)}
+                {fields.filter(f => !f.shipper_id).map(f => <option key={f.id} value={f.id}>{f.field_name}</option>)}
+                {[...new Set(fields.filter(f => f.shipper_id).map(f => f.shipper_name || 'Outside'))].sort().map(name => (
+                  <optgroup key={name} label={name}>
+                    {fields.filter(f => f.shipper_id && (f.shipper_name || 'Outside') === name).map(f => <option key={f.id} value={f.id}>{f.field_name}</option>)}
+                  </optgroup>
+                ))}
               </select>
+              {selectedField?.shipper_id && (
+                <div className="text-xs text-amber-400/80 mt-1">{selectedField.shipper_name || 'Outside shipper'}'s field — not counted as farm income or expense.</div>
+              )}
               {quickAdd === 'field' && (
                 <QuickAddField onSave={onFieldAdded} onCancel={() => setQuickAdd(null)} />
               )}
@@ -749,6 +763,9 @@ export default function Loads() {
                   <label className="label">Gross Pay</label>
                   <input className="input font-mono" type="number" step="0.01" name="grossPay" value={form.grossPay} onChange={handleChange} placeholder="900.00" />
                   <div className="text-xs text-slate-500 mt-1">Auto-calculated from Net Weight × Rate — edit to override.</div>
+                  {selectedField?.shipper_id && (
+                    <div className="text-xs text-amber-400/80 mt-1">Billed to {selectedField.shipper_name || 'the shipper'} as Trucking Income.</div>
+                  )}
                 </div>
               </div>
             )}

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import pool from '../db/pool.js';
 import { requireAdmin } from '../middleware/auth.js';
+import { shipperStats } from '../db/shippers.js';
 
 const router = Router();
 
@@ -49,6 +50,7 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
         ) lh ON lh.commodity_id = c.id
         LEFT JOIN fields f ON f.id = c.field_id
         WHERE c.farm_id=$1 AND c.deleted_at IS NULL AND c.is_closed = false
+          AND f.shipper_id IS NULL
           AND ($2::int IS NULL OR c.year = $2)`, [fid, year]),
       // Every year that has any data, for the dashboard's year picker
       pool.query(`SELECT DISTINCT y FROM (
@@ -59,6 +61,7 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
         ) t ORDER BY y DESC`, [fid]),
     ]);
 
+    const shippers = await shipperStats(fid, year);
     const totalIncome = parseFloat(incomeRes.rows[0].total);
     const totalExpenses = parseFloat(expenseRes.rows[0].total);
     const loads = loadsRes.rows[0];
@@ -120,6 +123,8 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
       grainLoads: parseInt(loads.grain),
       totalNetTons: parseFloat(loads.net_tons).toFixed(1),
       fieldIncome,
+      shippers: shippers.filter(s => s.loads > 0),
+      truckingIncome: shippers.reduce((s, r) => s + r.trucking_income, 0),
       recentLoads: recentRes.rows,
       tonsByCutting: groupRemaining(forageRows, 'cutting').sort((a, b) => cuttingOrder.indexOf(a.name) - cuttingOrder.indexOf(b.name)),
       tonsByType: groupRemaining(forageRows, 'forage_grade').sort(byTonsDesc),

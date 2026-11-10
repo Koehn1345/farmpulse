@@ -1,4 +1,5 @@
 import pool from './pool.js';
+import { loadShipperId } from './shippers.js';
 
 // Keeps the income row linked to a load in sync with that load's
 // tons hauled x the commodity's price_per_ton. Loads without a priced
@@ -6,7 +7,9 @@ import pool from './pool.js';
 // any previously auto-generated income for them is soft-deleted.
 export async function syncLoadIncome(load) {
   let amount = null;
-  if (load.commodity_id && load.net_weight) {
+  // Loads off an outside shipper's field are never farm income.
+  const outside = await loadShipperId(load);
+  if (!outside && load.commodity_id && load.net_weight) {
     const { rows } = await pool.query(
       'SELECT price_per_ton FROM commodities WHERE id = $1',
       [load.commodity_id]

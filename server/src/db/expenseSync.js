@@ -1,4 +1,5 @@
 import pool from './pool.js';
+import { loadShipperId } from './shippers.js';
 
 // Keeps the expense row linked to a load in sync with that load's Gross
 // Pay. Loads without a Gross Pay have no derivable expense, so any
@@ -6,7 +7,9 @@ import pool from './pool.js';
 // always done on load_id, never date/vendor/amount, so edits never spawn
 // duplicates and never latch onto the wrong row.
 export async function syncLoadExpense(load) {
-  const amount = load.gross_pay;
+  // Loads off an outside shipper's field: the trucking charge is billed to
+  // that shipper (trucking income), not a farm expense.
+  const amount = (await loadShipperId(load)) ? null : load.gross_pay;
 
   if (amount === null || amount === undefined) {
     await pool.query(

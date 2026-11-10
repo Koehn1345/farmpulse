@@ -222,6 +222,39 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Outside shippers - trucking income kept apart from farm income */}
+      {data.shippers?.length > 0 && (
+        <div className="card mb-8">
+          <div className="flex items-start justify-between mb-4 gap-4">
+            <div>
+              <h2 className="text-sm font-semibold text-slate-300">Trucking Income — Outside Shippers</h2>
+              <p className="text-xs text-slate-500 mt-1">Freight on loads hauled off other farms' fields. Not included in the farm income, expenses or inventory above.</p>
+            </div>
+            <span className="text-2xl font-semibold text-amber-300">{fmt(data.truckingIncome)}</span>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-800">
+                <th className="text-left pb-3 text-xs text-slate-500 font-medium uppercase tracking-wider">Shipper</th>
+                <th className="text-right pb-3 text-xs text-slate-500 font-medium uppercase tracking-wider">Loads</th>
+                <th className="text-right pb-3 text-xs text-slate-500 font-medium uppercase tracking-wider">Tons</th>
+                <th className="text-right pb-3 text-xs text-slate-500 font-medium uppercase tracking-wider">Trucking Income</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.shippers.map(s => (
+                <tr key={s.id} className="table-row">
+                  <td className="py-3 text-slate-200">{s.name}</td>
+                  <td className="py-3 text-right font-mono text-slate-300">{s.loads}</td>
+                  <td className="py-3 text-right font-mono text-slate-300">{s.tons.toFixed(1)}</td>
+                  <td className="py-3 text-right font-mono text-amber-300">{fmt(s.trucking_income)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {/* Recent Loads */}
       <div className="card">
         <h2 className="text-sm font-semibold text-slate-300 mb-4">Recent Loads</h2>

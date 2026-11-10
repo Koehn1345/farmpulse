@@ -48,6 +48,20 @@ CREATE TABLE IF NOT EXISTS fields (
   deleted_at TIMESTAMPTZ
 );
 
+-- Outside shippers (e.g. a brother's farm) - their fields' loads don't
+-- count toward this farm's income/expenses, only as trucking income
+CREATE TABLE IF NOT EXISTS shippers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  farm_id UUID NOT NULL REFERENCES farms(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  contact_name TEXT,
+  phone TEXT,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
+);
+ALTER TABLE fields ADD COLUMN IF NOT EXISTS shipper_id UUID REFERENCES shippers(id);
+
 -- Customers
 CREATE TABLE IF NOT EXISTS customers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -4,12 +4,12 @@ import { api } from '../lib/api.js';
 import Modal from '../components/Modal.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import { useFarm } from '../context/FarmContext.jsx';
-import { Plus, Pencil, Trash2, MapPin, Ruler, Power } from 'lucide-react';
+import { Plus, Pencil, Trash2, MapPin, Ruler, Power, Warehouse } from 'lucide-react';
 
 const currentYear = new Date().getFullYear();
 const emptyCrop = { year: String(currentYear), crop: '', notes: '' };
 
-const empty = { field_name: '', acres: '', google_pin: '', ownership: 'Own', lease_payment: '' };
+const empty = { field_name: '', acres: '', google_pin: '', ownership: 'Own', lease_payment: '', shipper_id: '' };
 const typeLabel = (t) => t === 'Forage' ? 'Stack' : 'Grain';
 const fmt = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 
@@ -39,6 +39,8 @@ export default function Fields() {
   const [loadError, setLoadError] = useState(null);
   const [statusTab, setStatusTab] = useState('active');
   const [pnl, setPnl] = useState(null);
+  const [shippers, setShippers] = useState([]);
+  const [newShipper, setNewShipper] = useState(null);
 
   const load = async () => {
     setLoadError(null);
@@ -52,6 +54,7 @@ export default function Fields() {
     }
   };
   useEffect(() => { load(); }, []);
+  useEffect(() => { if (isAdmin) api.shippers.list().then(setShippers).catch(() => {}); }, [isAdmin]);
 
   // Field P&L follows the modal's year filter. Admin-only, like the dashboard.
   useEffect(() => {
@@ -87,9 +90,21 @@ export default function Fields() {
     setCropHistory(h => h.filter(x => x.id !== id));
   };
 
-  const openAdd = () => { setForm(empty); setModal('add'); };
-  const openEdit = (row) => { setForm({ field_name: row.field_name, acres: String(row.acres || ''), google_pin: row.google_pin || '', ownership: row.ownership || 'Own', lease_payment: String(row.lease_payment || '') }); setModal({ edit: row }); };
+  const openAdd = () => { setForm(empty); setNewShipper(null); setModal('add'); };
+  const openEdit = (row) => { setForm({ field_name: row.field_name, acres: String(row.acres || ''), google_pin: row.google_pin || '', ownership: row.ownership || 'Own', lease_payment: String(row.lease_payment || ''), shipper_id: row.shipper_id || '' }); setNewShipper(null); setModal({ edit: row }); };
   const closeModal = () => setModal(null);
+
+  const saveNewShipper = async () => {
+    if (!newShipper?.trim()) return;
+    try {
+      const s = await api.shippers.create({ name: newShipper.trim() });
+      setShippers(list => [...list, s].sort((a, b) => a.name.localeCompare(b.name)));
+      setForm(f => ({ ...f, shipper_id: s.id }));
+      setNewShipper(null);
+    } catch (err) {
+      alert(`Failed to add shipper: ${err.message}`);
+    }
+  };
   const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
   const handleSave = async () => {
@@ -97,7 +112,8 @@ export default function Fields() {
     setSaving(true);
     const payload = {
       field_name: form.field_name, acres: parseFloat(form.acres) || null, google_pin: form.google_pin || null,
-      ownership: form.ownership, lease_payment: form.ownership === 'Lease' ? parseFloat(form.lease_payment) || null : null,
+      ownership: form.ownership, lease_payment: !form.shipper_id && form.ownership === 'Lease' ? parseFloat(form.lease_payment) || null : null,
+      shipper_id: form.shipper_id || null,
     };
     try {
       if (modal === 'add') await api.fields.create(payload);
@@ -194,8 +210,12 @@ export default function Fields() {
                       {row.acres ? parseFloat(row.acres).toFixed(1) : '—'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-slate-300 text-xs">{row.ownership || 'Own'}</td>
-                  <td className="px-6 py-4 text-right font-mono text-slate-300">{row.ownership === 'Lease' && row.lease_payment ? `$${parseFloat(row.lease_payment).toFixed(2)}` : '—'}</td>
+                  <td className="px-6 py-4 text-slate-300 text-xs">
+                    {row.shipper_id
+                      ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-900/30 border border-amber-800/50 text-amber-300"><Warehouse size={11} /> {row.shipper_name || 'Outside'}</span>
+                      : (row.ownership || 'Own')}
+                  </td>
+                  <td className="px-6 py-4 text-right font-mono text-slate-300">{!row.shipper_id && row.ownership === 'Lease' && row.lease_payment ? `$${parseFloat(row.lease_payment).toFixed(2)}` : '—'}</td>
                   <td className="px-6 py-4">
                     {row.google_pin
                       ? <a href={row.google_pin} target="_blank" rel="noreferrer" className="text-soil-400 hover:text-soil-300 text-xs underline underline-offset-2" onClick={(e) => e.stopPropagation()}>View on map</a>
@@ -230,7 +250,29 @@ export default function Fields() {
               <label className="label">Google Maps Pin URL</label>
               <input className="input" name="google_pin" value={form.google_pin} onChange={handleChange} placeholder="https://maps.google.com/..." />
             </div>
-            <div className={`grid gap-4 ${form.ownership === 'Lease' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="label !mb-0">Belongs To</label>
+                {newShipper === null && (
+                  <button className="text-xs text-soil-400 hover:text-soil-300" onClick={() => setNewShipper('')}>+ New Shipper</button>
+                )}
+              </div>
+              <select className="input" name="shipper_id" value={form.shipper_id} onChange={handleChange}>
+                <option value="">My Farm</option>
+                {shippers.map(s => <option key={s.id} value={s.id}>{s.name} (outside shipper)</option>)}
+              </select>
+              {newShipper !== null && (
+                <div className="mt-2 flex gap-2">
+                  <input className="input" value={newShipper} onChange={e => setNewShipper(e.target.value)} placeholder="Shipper name (e.g. Dave's Farm)" autoFocus />
+                  <button className="btn-primary !py-1 text-xs" onClick={saveNewShipper}>Add</button>
+                  <button className="btn-secondary !py-1 text-xs" onClick={() => setNewShipper(null)}>Cancel</button>
+                </div>
+              )}
+              {form.shipper_id && (
+                <div className="text-xs text-amber-400/80 mt-1">Stacks and loads on this field won't count toward your farm income or expenses. Freight on its loads goes to Trucking Income.</div>
+              )}
+            </div>
+            {!form.shipper_id && <div className={`grid gap-4 ${form.ownership === 'Lease' ? 'grid-cols-2' : 'grid-cols-1'}`}>
               <div>
                 <label className="label">Ownership</label>
                 <select className="input" name="ownership" value={form.ownership} onChange={handleChange}>
@@ -244,7 +286,7 @@ export default function Fields() {
                   <input className="input" type="number" name="lease_payment" value={form.lease_payment} onChange={handleChange} placeholder="5000.00" step="0.01" />
                 </div>
               )}
-            </div>
+            </div>}
             <div className="flex gap-3 pt-2">
               <button className="btn-primary flex-1 justify-center" onClick={handleSave} disabled={saving}>
                 {saving ? 'Saving…' : 'Save Field'}
@@ -277,12 +319,18 @@ export default function Fields() {
                     <MapPin size={13} /> No map pin set
                   </div>
                 )}
-                <div className="text-slate-300">
-                  {viewField.ownership || 'Own'}
-                  {viewField.ownership === 'Lease' && viewField.lease_payment && (
-                    <span className="text-slate-500"> — ${parseFloat(viewField.lease_payment).toFixed(2)}</span>
-                  )}
-                </div>
+                {viewField.shipper_id ? (
+                  <div className="flex items-center gap-2 text-amber-300">
+                    <Warehouse size={13} /> Outside shipper: {viewField.shipper_name || '—'}
+                  </div>
+                ) : (
+                  <div className="text-slate-300">
+                    {viewField.ownership || 'Own'}
+                    {viewField.ownership === 'Lease' && viewField.lease_payment && (
+                      <span className="text-slate-500"> — ${parseFloat(viewField.lease_payment).toFixed(2)}</span>
+                    )}
+                  </div>
+                )}
               </div>
               {isAdmin && (
                 <div className="flex gap-2">
@@ -321,7 +369,29 @@ export default function Fields() {
               ))}
             </div>
 
-            {isAdmin && (
+            {isAdmin && viewField.shipper_id && (
+              <div className="mb-5 pb-4 border-b border-slate-800">
+                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                  Trucking{yearFilter !== 'All' ? ` — ${yearFilter}` : ' — All Years'}
+                </div>
+                <div className="text-xs text-slate-500 mb-2">This field belongs to {viewField.shipper_name || 'an outside shipper'}. Its stacks and loads don't count toward your farm P&amp;L.</div>
+                {!pnl ? (
+                  <div className="text-xs text-slate-500">Loading…</div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 text-sm">
+                    <div>
+                      <PnlRow label="Loads Hauled" value={pnl.truckingLoads} className="text-slate-200" />
+                      <PnlRow label="Tons Hauled" value={pnl.truckingTons.toFixed(1)} className="text-slate-200" />
+                    </div>
+                    <div>
+                      <PnlRow label="Trucking Income" value={fmt(pnl.truckingIncome)} className="text-amber-300" bold />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {isAdmin && !viewField.shipper_id && (
               <div className="mb-5 pb-4 border-b border-slate-800">
                 <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
                   P&amp;L Summary{yearFilter !== 'All' ? ` — ${yearFilter}` : ' — All Years'}

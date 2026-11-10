@@ -90,6 +90,12 @@ export const api = {
     update: (id, b) => req('PUT', `/income/${id}`, b),
     delete: (id) => req('DELETE', `/income/${id}`),
   },
+  shippers: {
+    list: (year) => req('GET', year ? `/shippers?year=${year}` : '/shippers'),
+    create: (b) => req('POST', '/shippers', b),
+    update: (id, b) => req('PUT', `/shippers/${id}`, b),
+    delete: (id) => req('DELETE', `/shippers/${id}`),
+  },
   expenses: {
     list: () => req('GET', '/expenses'),
     create: (b) => req('POST', '/expenses', b),

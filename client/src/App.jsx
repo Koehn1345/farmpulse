@@ -11,7 +11,7 @@ import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-do
 import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, Truck, Wheat, Users, TrendingUp, TrendingDown,
-  MapPin, Menu, X, Settings as SettingsIcon, Users2, LogOut, Car, Fuel as FuelIcon
+  MapPin, Menu, X, Settings as SettingsIcon, Users2, LogOut, Car, Fuel as FuelIcon, Warehouse
 } from 'lucide-react';
 import { setTokenGetter } from './lib/api.js';
 import { FarmProvider, useFarm } from './context/FarmContext.jsx';
@@ -25,6 +25,7 @@ import Fields from './pages/Fields.jsx';
 import Vehicles from './pages/Vehicles.jsx';
 import Fuel from './pages/Fuel.jsx';
 import Team from './pages/Team.jsx';
+import Shippers from './pages/Shippers.jsx';
 import Settings from './pages/Settings.jsx';
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -81,6 +82,7 @@ const adminNav = [
   { to: '/income', label: 'Income', icon: TrendingUp },
   { to: '/expenses', label: 'Expenses', icon: TrendingDown },
   { to: '/customers', label: 'Customers', icon: Users },
+  { to: '/shippers', label: 'Outside Shippers', icon: Warehouse },
   { to: '/vehicles', label: 'Vehicles', icon: Car },
   { to: '/team', label: 'Team', icon: Users2 },
   { to: '/settings', label: 'Settings', icon: SettingsIcon },
@@ -202,6 +204,7 @@ function AppShell() {
                 <Route path="/loads" element={<Loads />} />
                 <Route path="/commodities" element={<Commodities />} />
                 <Route path="/customers" element={<Customers />} />
+                <Route path="/shippers" element={<Shippers />} />
                 <Route path="/income" element={<Income />} />
                 <Route path="/expenses" element={<Expenses />} />
                 <Route path="/fields" element={<Fields />} />

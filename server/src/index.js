@@ -14,6 +14,7 @@ import fuelEntryRoutes from './routes/fuelEntries.js';
 import incomeRoutes from './routes/income.js';
 import expenseRoutes from './routes/expenses.js';
 import miscRoutes from './routes/misc.js';
+import shipperRoutes from './routes/shippers.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -38,6 +39,7 @@ api.use('/vehicles', vehicleRoutes);
 api.use('/fuel-entries', fuelEntryRoutes);
 api.use('/income', incomeRoutes);
 api.use('/expenses', expenseRoutes);
+api.use('/shippers', shipperRoutes);
 api.use('/', miscRoutes);
 
 app.use('/api', api);
