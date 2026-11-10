@@ -72,7 +72,7 @@ function QuickAddField({ onSave, onCancel }) {
 }
 
 function QuickAddCommodity({ type, fields, defaultFieldId, onSave, onCancel }) {
-  const [form, setForm] = useState({ type, field_id: defaultFieldId || '', type_of_forage: '', cutting: '1st', stack_number: '', bale_count: '', avg_bale_weight_lbs: '', type_crop: '', seed_details: '', estimated_total_tons: '' });
+  const [form, setForm] = useState({ type, field_id: defaultFieldId || '', type_of_forage: '', cutting: '1st', stack_number: '', bale_count: '', avg_bale_weight_lbs: '', type_crop: '', seed_details: '', bag_number: '', estimated_total_tons: '' });
   const [saving, setSaving] = useState(false);
   const displayType = type === 'Forage' ? 'Stack' : type;
   const handleSave = async () => {
@@ -108,9 +108,10 @@ function QuickAddCommodity({ type, fields, defaultFieldId, onSave, onCancel }) {
       </> : <>
         <input className="input" placeholder="Crop type (Wheat, Barley…)" value={form.type_crop} onChange={e => setForm(f => ({ ...f, type_crop: e.target.value }))} autoFocus />
         <div className="grid grid-cols-2 gap-2">
+          <input className="input" placeholder="Bag # (optional)" value={form.bag_number} onChange={e => setForm(f => ({ ...f, bag_number: e.target.value }))} />
           <input className="input" placeholder="Seed variety (optional)" value={form.seed_details} onChange={e => setForm(f => ({ ...f, seed_details: e.target.value }))} />
-          <input className="input" placeholder="Estimated tons" type="number" value={form.estimated_total_tons} onChange={e => setForm(f => ({ ...f, estimated_total_tons: e.target.value }))} />
         </div>
+        <input className="input" placeholder="Estimated tons" type="number" value={form.estimated_total_tons} onChange={e => setForm(f => ({ ...f, estimated_total_tons: e.target.value }))} />
       </>}
       <div className="flex gap-2">
         <button className="btn-primary !py-1 text-xs" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Add'}</button>
@@ -231,7 +232,7 @@ export default function Loads() {
   };
 
   const typeLabel = (t) => t === 'Forage' ? 'Stacks' : 'Grain';
-  const cropLabel = (row) => (row.type === 'Forage' ? (row.stack_number || row.type_of_forage) : row.type_crop) || '—';
+  const cropLabel = (row) => (row.type === 'Forage' ? (row.stack_number || row.type_of_forage) : (row.bag_number ? `Bag ${row.bag_number}${row.type_crop ? ` (${row.type_crop})` : ''}` : row.type_crop)) || '—';
 
   const handleDriverChange = (e) => {
     const { name, value } = e.target;
@@ -709,7 +710,7 @@ export default function Loads() {
                   <option key={c.id} value={c.id}>
                     {c.type === 'Forage'
                       ? `${c.stack_number || c.type_of_forage} (${c.type_of_forage || ''})`
-                      : c.type_crop}
+                      : (c.bag_number ? `Bag ${c.bag_number} (${c.type_crop || ''})` : c.type_crop)}
                   </option>
                 ))}
               </select>

@@ -32,7 +32,7 @@ router.get('/', async (req, res) => {
       `SELECT l.*,
         c.company_name as customer_name,
         f.field_name,
-        co.stack_number, co.type_of_forage, co.type_crop,
+        co.stack_number, co.type_of_forage, co.type_crop, co.bag_number,
         fm.name as farm_name
        FROM loads l
        LEFT JOIN customers c ON c.id = l.customer_id
