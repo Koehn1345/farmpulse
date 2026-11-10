@@ -2,6 +2,7 @@ import { Router } from 'express';
 import pool from '../db/pool.js';
 import { requireAdmin } from '../middleware/auth.js';
 import { shipperStats } from '../db/shippers.js';
+import { inventoryRows, summarizeInventory } from '../db/inventory.js';
 
 const router = Router();
 router.use(requireAdmin);
@@ -10,6 +11,25 @@ router.use(requireAdmin);
 router.get('/', async (req, res) => {
   try {
     res.json(await shipperStats(req.farmId, parseInt(req.query.year, 10) || null));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// One shipper's stacks/bags: tons left and total estimated by
+// cutting / type / commodity - the same six panels as the farm dashboard.
+router.get('/:id/inventory', async (req, res) => {
+  try {
+    const { rows: found } = await pool.query(
+      'SELECT id FROM shippers WHERE id=$1 AND farm_id=$2 AND deleted_at IS NULL',
+      [req.params.id, req.farmId]
+    );
+    if (!found.length) return res.status(404).json({ error: 'Not found' });
+    const year = parseInt(req.query.year, 10) || null;
+    const inv = summarizeInventory(await inventoryRows(req.farmId, year, req.params.id));
+    const { withRemaining, contractedInventoryValue, ...panels } = inv;
+    res.json(panels);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import Modal from '../components/Modal.jsx';
 import PageHeader from '../components/PageHeader.jsx';
+import { InventoryPanels } from '../components/TonsPillGrid.jsx';
 import { Plus, Pencil, Trash2, Warehouse, Phone, MapPin } from 'lucide-react';
 
 const empty = { name: '', contact_name: '', phone: '', notes: '' };
@@ -21,8 +22,25 @@ export default function Shippers() {
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
 
+  const [selectedId, setSelectedId] = useState('');
+  const [inventory, setInventory] = useState(null);
+
   const load = () => api.shippers.list(year || null).then(setRows).finally(() => setLoading(false));
   useEffect(() => { load(); }, [year]);
+
+  // Default the inventory view to the first shipper once they load
+  useEffect(() => {
+    if (rows.length && !rows.some(r => r.id === selectedId)) setSelectedId(rows[0].id);
+  }, [rows]);
+
+  useEffect(() => {
+    if (!selectedId) { setInventory(null); return; }
+    let stale = false;
+    api.shippers.inventory(selectedId, year || null)
+      .then(d => { if (!stale) setInventory(d); })
+      .catch(() => { if (!stale) setInventory(null); });
+    return () => { stale = true; };
+  }, [selectedId, year]);
 
   const openAdd = () => { setForm(empty); setModal('add'); };
   const openEdit = (row) => { setForm({ name: row.name, contact_name: row.contact_name || '', phone: row.phone || '', notes: row.notes || '' }); setModal({ edit: row }); };
@@ -92,7 +110,11 @@ export default function Shippers() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {rows.map(row => (
-            <div key={row.id} className="card-sm flex flex-col gap-3">
+            <div
+              key={row.id}
+              onClick={() => setSelectedId(row.id)}
+              className={`card-sm flex flex-col gap-3 cursor-pointer ${selectedId === row.id ? 'ring-1 ring-amber-500/60' : ''}`}
+            >
               <div className="flex items-start justify-between">
                 <div>
                   <div className="font-semibold text-slate-100 flex items-center gap-2">
@@ -100,13 +122,13 @@ export default function Shippers() {
                   </div>
                   {row.contact_name && <div className="text-xs text-slate-400 mt-0.5">{row.contact_name}</div>}
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1" onClick={e => e.stopPropagation()}>
                   <button className="text-slate-500 hover:text-slate-300 p-1" onClick={() => openEdit(row)}><Pencil size={13} /></button>
                   <button className="text-slate-500 hover:text-red-400 p-1" onClick={() => handleDelete(row)}><Trash2 size={13} /></button>
                 </div>
               </div>
               {row.phone && <div className="text-xs text-slate-400 flex items-center gap-2"><Phone size={12} /> {row.phone}</div>}
-              <button className="text-xs text-soil-400 hover:text-soil-300 flex items-center gap-2 w-fit" onClick={() => navigate('/fields')}>
+              <button className="text-xs text-soil-400 hover:text-soil-300 flex items-center gap-2 w-fit" onClick={(e) => { e.stopPropagation(); navigate('/fields'); }}>
                 <MapPin size={12} /> {row.field_count} field{row.field_count !== 1 ? 's' : ''}
               </button>
               <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-800 text-center">
@@ -117,6 +139,21 @@ export default function Shippers() {
               {row.notes && <div className="text-xs text-slate-500">{row.notes}</div>}
             </div>
           ))}
+        </div>
+      )}
+
+      {rows.length > 0 && (
+        <div className="mt-10">
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-100">Shipper Inventory</h2>
+              <p className="text-xs text-slate-500">Stacks and bags on the selected shipper's fields{year ? ` for ${year}` : ', all years'}.</p>
+            </div>
+            <select className="input w-auto" value={selectedId} onChange={e => setSelectedId(e.target.value)}>
+              {rows.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+            </select>
+          </div>
+          {inventory ? <InventoryPanels data={inventory} /> : <div className="text-slate-500 text-sm py-8 text-center">Loading…</div>}
         </div>
       )}
 

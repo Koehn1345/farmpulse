@@ -92,6 +92,7 @@ export const api = {
   },
   shippers: {
     list: (year) => req('GET', year ? `/shippers?year=${year}` : '/shippers'),
+    inventory: (id, year) => req('GET', year ? `/shippers/${id}/inventory?year=${year}` : `/shippers/${id}/inventory`),
     create: (b) => req('POST', '/shippers', b),
     update: (id, b) => req('PUT', `/shippers/${id}`, b),
     delete: (id) => req('DELETE', `/shippers/${id}`),
