@@ -146,9 +146,11 @@ CREATE TABLE IF NOT EXISTS loads (
   misc_url TEXT,
   freight_rate NUMERIC(10,2),
   gross_pay NUMERIC(12,2),
+  load_time TIME,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   deleted_at TIMESTAMPTZ
 );
+ALTER TABLE loads ADD COLUMN IF NOT EXISTS load_time TIME;
 
 -- Income
 CREATE TABLE IF NOT EXISTS income (

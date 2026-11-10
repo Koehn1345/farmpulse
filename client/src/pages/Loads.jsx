@@ -5,10 +5,10 @@ import PageHeader from '../components/PageHeader.jsx';
 import { useFarm } from '../context/FarmContext.jsx';
 import { Plus, Pencil, Trash2, Filter, FileImage, Calendar, CheckCircle, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import ImageUpload from '../components/ImageUpload.jsx';
-import { formatDate } from '../lib/format.js';
+import { formatDate, formatTime } from '../lib/format.js';
 
 const emptyLoad = {
-  date: '', customerId: '', commodityId: '', fieldId: '', shipper: '',
+  date: '', loadTime: '', customerId: '', commodityId: '', fieldId: '', shipper: '',
   type: 'Forage', baleCount: '', grossWeight: '', tareWeight: '', netWeight: '',
   driver: '', truckNumber: '', bolNumber: '',
   bol_url: '', scale_ticket_url: '', misc_url: '',
@@ -169,6 +169,7 @@ export default function Loads() {
   const openEdit = (row) => {
     setForm({
       date: row.date ? row.date.slice(0, 10) : '',
+      loadTime: row.load_time ? row.load_time.slice(0, 5) : '',
       customerId: row.customer_id || '',
       commodityId: row.commodity_id || '',
       fieldId: row.field_id || '',
@@ -258,6 +259,7 @@ export default function Loads() {
     setSaving(true);
     const payload = {
       date: form.date,
+      load_time: form.loadTime || null,
       customer_id: form.customerId || null,
       commodity_id: form.commodityId || null,
       field_id: form.fieldId || null,
@@ -367,11 +369,18 @@ export default function Loads() {
     if (dateTo && rowDate > dateTo) return false;
     return true;
   });
-  const sortedRows = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
+  // Within a day, timed loads run earliest first; untimed loads follow.
+  const byTimeInDay = (a, b) => {
+    if (a.load_time && b.load_time) return a.load_time.localeCompare(b.load_time);
+    if (a.load_time) return -1;
+    if (b.load_time) return 1;
+    return 0;
+  };
+  const sortedRows = [...filtered].sort((a, b) => (new Date(b.date) - new Date(a.date)) || byTimeInDay(a, b));
   // Commodities list is already scoped to non-deleted (active) rows by the
   // API; once a field is picked, narrow further to crops grown on it.
   const filteredCommodities = commodities.filter(c => c.type === form.type && (!form.fieldId || c.field_id === form.fieldId));
-  const baseHeaders = ['', 'Status', 'Date', 'Customer', 'Field', 'Commodity', 'Shipper', 'Driver / Truck', 'Bales', 'BOL #', 'Gross', 'Tare', 'Net (lbs)', 'Tons', 'Type'];
+  const baseHeaders = ['', 'Status', 'Date', 'Time', 'Customer', 'Field', 'Commodity', 'Shipper', 'Driver / Truck', 'Bales', 'BOL #', 'Gross', 'Tare', 'Net (lbs)', 'Tons', 'Type'];
   const headers = isAdmin ? [...baseHeaders, 'Rate ($/ton)', 'Gross Pay'] : baseHeaders;
 
   // Calendar view: group the same filtered loads by date for a month grid
@@ -380,6 +389,7 @@ export default function Loads() {
     (acc[key] = acc[key] || []).push(r);
     return acc;
   }, {});
+  Object.values(loadsByDate).forEach(list => list.sort(byTimeInDay));
   const toISODate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const todayISO = toISODate(new Date());
   const calendarCells = (() => {
@@ -529,6 +539,7 @@ export default function Loads() {
                               row.net_weight ? 'border-green-500 bg-green-900/20 hover:bg-green-900/40' : 'border-amber-500 bg-amber-900/20 hover:bg-amber-900/40'
                             }`}
                           >
+                            {row.load_time && <div className="text-soil-300 font-mono font-semibold">{formatTime(row.load_time)}</div>}
                             <div className="text-slate-200 truncate font-medium">{row.customer_name || '—'}</div>
                             <div className="text-slate-400 truncate">{row.field_name || '—'}</div>
                             <div className="text-slate-500 truncate">{cropLabel(row)}</div>
@@ -588,6 +599,7 @@ export default function Loads() {
                             }
                           </td>
                           <td className="px-4 py-3 font-mono text-xs text-slate-400">{formatDate(row.date)}</td>
+                          <td className="px-4 py-3 font-mono text-xs text-soil-300">{formatTime(row.load_time) || '—'}</td>
                           <td className="px-4 py-3 text-slate-200">{row.customer_name || '—'}</td>
                           <td className="px-4 py-3 text-slate-400">{row.field_name || '—'}</td>
                           <td className="px-4 py-3 text-slate-300 text-xs">{cropLabel(row)}</td>
@@ -648,10 +660,14 @@ export default function Loads() {
       {modal && (
         <Modal title={modal === 'add' ? 'Create Load' : 'Edit Load'} onClose={closeModal} wide>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="label">Date *</label>
                 <input className="input" type="date" name="date" value={form.date} onChange={handleChange} />
+              </div>
+              <div>
+                <label className="label">Time</label>
+                <input className="input" type="time" name="loadTime" value={form.loadTime} onChange={handleChange} />
               </div>
               <div>
                 <label className="label">Type</label>
@@ -923,7 +939,7 @@ export default function Loads() {
       )}
 
       {viewRow && (
-        <Modal title={`Load — ${formatDate(viewRow.date)}`} onClose={() => setViewRow(null)} wide>
+        <Modal title={`Load — ${formatDate(viewRow.date)}${viewRow.load_time ? ` · ${formatTime(viewRow.load_time)}` : ''}`} onClose={() => setViewRow(null)} wide>
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-2 mb-1">
               {viewRow.net_weight
@@ -940,6 +956,7 @@ export default function Loads() {
               )}
             </div>
             <div className="grid grid-cols-2 gap-4 text-sm">
+              <div><div className="label">Scheduled Time</div><div className="text-slate-100">{formatTime(viewRow.load_time) || '—'}</div></div>
               <div><div className="label">Customer</div><div className="text-slate-100">{viewRow.customer_name || '—'}</div></div>
               <div><div className="label">Field</div><div className="text-slate-100">{viewRow.field_name || '—'}</div></div>
               <div><div className="label">Commodity</div><div className="text-slate-100">{cropLabel(viewRow)}</div></div>

@@ -40,7 +40,7 @@ router.get('/', async (req, res) => {
        LEFT JOIN commodities co ON co.id = l.commodity_id
        LEFT JOIN farms fm ON fm.id = l.farm_id
        WHERE l.farm_id IN (${placeholders}) AND l.deleted_at IS NULL
-       ORDER BY l.date DESC, l.created_at DESC`,
+       ORDER BY l.date DESC, l.load_time ASC NULLS LAST, l.created_at DESC`,
       farmIds
     );
     res.json(rows.map(r => forRole(r, req.userRole)));
@@ -62,8 +62,8 @@ router.post('/', async (req, res) => {
         shipper, type, bale_count, gross_weight, tare_weight, net_weight,
         driver, truck_number, logged_by_clerk_id,
         bol_number, bol_url, scale_ticket_url, misc_url,
-        freight_rate, gross_pay
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) RETURNING *`,
+        freight_rate, gross_pay, load_time
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21) RETURNING *`,
       [
         req.farmId, b.date, b.customer_id || null, b.commodity_id || null, b.field_id || null,
         b.shipper, b.type, b.bale_count || null,
@@ -72,6 +72,7 @@ router.post('/', async (req, res) => {
         b.bol_number || null, b.bol_url || null, b.scale_ticket_url || null, b.misc_url || null,
         setRate ? (b.freight_rate === '' ? null : b.freight_rate ?? null) : null,
         setRate ? (b.gross_pay === '' ? null : b.gross_pay ?? null) : null,
+        b.load_time || null,
       ]
     );
 
@@ -108,6 +109,12 @@ router.put('/:id', async (req, res) => {
       b.tare_weight || null, b.net_weight || null, b.driver, b.truck_number,
       b.bol_number || null, b.bol_url || null, b.scale_ticket_url || null, b.misc_url || null,
     ];
+    // Only the full edit form sends load_time - the driver-complete and
+    // inline-rate saves don't, and must not wipe a scheduled time.
+    if ('load_time' in b) {
+      params.push(b.load_time || null);
+      setParts.push(`load_time=$${params.length}`);
+    }
     // Only touch freight_rate/gross_pay when the request actually carries
     // them (the full edit form always does; the driver-update form never
     // does) - otherwise a non-financial edit would wipe out a rate an
