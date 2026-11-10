@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import pool from '../db/pool.js';
 import { requireAdmin } from '../middleware/auth.js';
-import { shipperStats } from '../db/shippers.js';
 
 const router = Router();
 
@@ -61,7 +60,16 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
         ) t ORDER BY y DESC`, [fid]),
     ]);
 
-    const shippers = await shipperStats(fid, year);
+    // Freight on loads hauled off this farm's own fields. Loads off an
+    // outside shipper's field are reported on the Outside Shippers page.
+    const { rows: truckingRows } = await pool.query(
+      `SELECT COALESCE(SUM(l.gross_pay), 0) AS total
+       FROM loads l
+       LEFT JOIN commodities co ON co.id = l.commodity_id
+       LEFT JOIN fields f ON f.id = COALESCE(l.field_id, co.field_id)
+       WHERE l.farm_id = $1 AND l.deleted_at IS NULL AND f.shipper_id IS NULL AND ${inYear('l.date')}`,
+      [fid, year]
+    );
     const totalIncome = parseFloat(incomeRes.rows[0].total);
     const totalExpenses = parseFloat(expenseRes.rows[0].total);
     const loads = loadsRes.rows[0];
@@ -123,8 +131,7 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
       grainLoads: parseInt(loads.grain),
       totalNetTons: parseFloat(loads.net_tons).toFixed(1),
       fieldIncome,
-      shippers: shippers.filter(s => s.loads > 0),
-      truckingIncome: shippers.reduce((s, r) => s + r.trucking_income, 0),
+      truckingIncome: parseFloat(truckingRows[0].total),
       recentLoads: recentRes.rows,
       tonsByCutting: groupRemaining(forageRows, 'cutting').sort((a, b) => cuttingOrder.indexOf(a.name) - cuttingOrder.indexOf(b.name)),
       tonsByType: groupRemaining(forageRows, 'forage_grade').sort(byTonsDesc),
