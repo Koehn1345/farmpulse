@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { DollarSign, Truck, Weight, TrendingUp, Package, Wallet } from 'lucide-react';
+import { DollarSign, Truck, Weight, TrendingUp, Package, Wallet, Warehouse } from 'lucide-react';
 
 const fmt = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 const fmtNum = (n) => new Intl.NumberFormat('en-US').format(n);
@@ -117,7 +117,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <StatCard
           label="Realized Income"
           value={fmt(data.totalIncome)}
@@ -145,6 +145,13 @@ export default function Dashboard() {
           sub="All commodities"
           icon={Weight}
           accent="bg-violet-900/50 text-violet-400"
+        />
+        <StatCard
+          label="Trucking Income"
+          value={fmt(data.truckingIncome || 0)}
+          sub="Outside shippers · not farm income"
+          icon={Warehouse}
+          accent="bg-amber-900/50 text-amber-400"
         />
       </div>
 
