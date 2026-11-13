@@ -827,7 +827,7 @@ export default function Loads() {
 
               <div className="pt-2 border-t border-slate-800">
                 <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Paperwork</div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <ImageUpload
                     label="BOL"
                     value={form.bol_url}
@@ -909,7 +909,7 @@ export default function Loads() {
 
             <div className="pt-2 border-t border-slate-800">
               <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Paperwork</div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <ImageUpload
                   label="BOL"
                   value={driverForm.bol_url}
@@ -985,7 +985,7 @@ export default function Loads() {
             {(viewRow.bol_url || viewRow.scale_ticket_url || viewRow.misc_url) && (
               <div className="pt-2 border-t border-slate-800">
                 <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Paperwork</div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {[['BOL', viewRow.bol_url], ['Scale Ticket', viewRow.scale_ticket_url], ['Misc', viewRow.misc_url]].map(([label, url]) => (
                     url ? (
                       <a key={label} href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 p-3 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 transition-colors text-xs text-slate-300">
