@@ -34,15 +34,25 @@ router.get('/', async (req, res) => {
 // Field map: every field with its pin resolved to coordinates (null when the
 // saved pin can't be read). Short share links are expanded server-side.
 router.get('/map', async (req, res) => {
-  const { rows } = await pool.query(
-    `SELECT f.id, f.field_name, f.acres, f.google_pin, f.is_active, f.shipper_id, s.name AS shipper_name
-     FROM fields f
-     LEFT JOIN shippers s ON s.id = f.shipper_id AND s.deleted_at IS NULL
-     WHERE f.farm_id = $1 AND f.deleted_at IS NULL ORDER BY f.field_name`,
-    [req.farmId]
-  );
-  const out = await Promise.all(rows.map(async (f) => ({ ...f, coords: await pinCoords(f.google_pin) })));
-  res.json(out);
+  try {
+    // f.* rather than naming is_active: that column isn't on every database yet.
+    const { rows } = await pool.query(
+      `SELECT f.*, s.name AS shipper_name
+       FROM fields f
+       LEFT JOIN shippers s ON s.id = f.shipper_id AND s.deleted_at IS NULL
+       WHERE f.farm_id = $1 AND f.deleted_at IS NULL ORDER BY f.field_name`,
+      [req.farmId]
+    );
+    const out = await Promise.all(rows.map(async (f) => ({
+      id: f.id, field_name: f.field_name, acres: f.acres, google_pin: f.google_pin,
+      is_active: f.is_active !== false, shipper_id: f.shipper_id, shipper_name: f.shipper_name,
+      coords: await pinCoords(f.google_pin),
+    })));
+    res.json(out);
+  } catch (err) {
+    console.error('field map failed', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Per-field P&L - admin only, mirrors the dashboard's figures for one field.
