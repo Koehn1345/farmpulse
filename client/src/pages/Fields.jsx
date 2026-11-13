@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import Modal from '../components/Modal.jsx';
 import PageHeader from '../components/PageHeader.jsx';
@@ -25,6 +25,7 @@ function PnlRow({ label, value, className, bold }) {
 export default function Fields() {
   const { isAdmin } = useFarm();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [rows, setRows] = useState([]);
   const [commodities, setCommodities] = useState([]);
   const [cropHistory, setCropHistory] = useState([]);
@@ -54,6 +55,15 @@ export default function Fields() {
     }
   };
   useEffect(() => { load(); }, []);
+
+  // Arriving from the Field Map (/fields?field=<id>): open that field
+  useEffect(() => {
+    const id = searchParams.get('field');
+    if (!id || !rows.length) return;
+    const row = rows.find(r => r.id === id);
+    if (row) { setViewField(row); setYearFilter(currentYear); setCropForm(null); }
+    setSearchParams({}, { replace: true });
+  }, [rows, searchParams]);
   useEffect(() => { if (isAdmin) api.shippers.list().then(setShippers).catch(() => {}); }, [isAdmin]);
 
   // Field P&L follows the modal's year filter. Admin-only, like the dashboard.

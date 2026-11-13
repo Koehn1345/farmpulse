@@ -45,6 +45,7 @@ export const api = {
   },
   fields: {
     list: () => req('GET', '/fields'),
+    map: () => req('GET', '/fields/map'),
     create: (b) => req('POST', '/fields', b),
     update: (id, b) => req('PUT', `/fields/${id}`, b),
     setActive: (id, is_active) => req('PUT', `/fields/${id}/active`, { is_active }),

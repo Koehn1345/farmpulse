@@ -11,7 +11,7 @@ import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-do
 import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, Truck, Wheat, Users, TrendingUp, TrendingDown,
-  MapPin, Menu, X, Settings as SettingsIcon, Users2, LogOut, Car, Fuel as FuelIcon, Warehouse
+  MapPin, Map as MapIcon, Menu, X, Settings as SettingsIcon, Users2, LogOut, Car, Fuel as FuelIcon, Warehouse
 } from 'lucide-react';
 import { setTokenGetter } from './lib/api.js';
 import { FarmProvider, useFarm } from './context/FarmContext.jsx';
@@ -22,6 +22,7 @@ import Customers from './pages/Customers.jsx';
 import Income from './pages/Income.jsx';
 import Expenses from './pages/Expenses.jsx';
 import Fields from './pages/Fields.jsx';
+import FieldMap from './pages/FieldMap.jsx';
 import Vehicles from './pages/Vehicles.jsx';
 import Fuel from './pages/Fuel.jsx';
 import Team from './pages/Team.jsx';
@@ -76,6 +77,7 @@ function LoadingScreen() {
 const adminNav = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, exact: true },
   { to: '/fields', label: 'Fields', icon: MapPin },
+  { to: '/map', label: 'Field Map', icon: MapIcon },
   { to: '/commodities', label: 'Commodities', icon: Wheat },
   { to: '/loads', label: 'Loads', icon: Truck },
   { to: '/fuel', label: 'Fuel', icon: FuelIcon },
@@ -90,6 +92,7 @@ const adminNav = [
 
 const employeeNav = [
   { to: '/fields', label: 'Fields', icon: MapPin },
+  { to: '/map', label: 'Field Map', icon: MapIcon },
   { to: '/commodities', label: 'Commodities', icon: Wheat },
   { to: '/loads', label: 'Loads', icon: Truck, exact: true },
   { to: '/vehicles', label: 'Vehicles', icon: Car },
@@ -208,6 +211,7 @@ function AppShell() {
                 <Route path="/income" element={<Income />} />
                 <Route path="/expenses" element={<Expenses />} />
                 <Route path="/fields" element={<Fields />} />
+                <Route path="/map" element={<FieldMap />} />
                 <Route path="/vehicles" element={<Vehicles />} />
                 <Route path="/fuel" element={<Fuel />} />
                 <Route path="/team" element={<Team />} />
@@ -217,6 +221,7 @@ function AppShell() {
               <>
                 <Route path="/" element={<Navigate to="/loads" replace />} />
                 <Route path="/fields" element={<Fields />} />
+                <Route path="/map" element={<FieldMap />} />
                 <Route path="/commodities" element={<Commodities />} />
                 <Route path="/loads" element={<Loads />} />
                 <Route path="/vehicles" element={<Vehicles />} />

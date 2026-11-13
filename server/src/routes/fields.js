@@ -3,6 +3,7 @@ import pool from '../db/pool.js';
 import { requireAdmin } from '../middleware/auth.js';
 import { syncLoadIncome } from '../db/incomeSync.js';
 import { syncLoadExpense } from '../db/expenseSync.js';
+import { pinCoords } from '../db/geo.js';
 
 // When a field moves between this farm and an outside shipper, every load
 // hauled off it needs its auto income/expense rows recreated or removed.
@@ -28,6 +29,20 @@ router.get('/', async (req, res) => {
     [req.farmId]
   );
   res.json(rows);
+});
+
+// Field map: every field with its pin resolved to coordinates (null when the
+// saved pin can't be read). Short share links are expanded server-side.
+router.get('/map', async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT f.id, f.field_name, f.acres, f.google_pin, f.is_active, f.shipper_id, s.name AS shipper_name
+     FROM fields f
+     LEFT JOIN shippers s ON s.id = f.shipper_id AND s.deleted_at IS NULL
+     WHERE f.farm_id = $1 AND f.deleted_at IS NULL ORDER BY f.field_name`,
+    [req.farmId]
+  );
+  const out = await Promise.all(rows.map(async (f) => ({ ...f, coords: await pinCoords(f.google_pin) })));
+  res.json(out);
 });
 
 // Per-field P&L - admin only, mirrors the dashboard's figures for one field.
