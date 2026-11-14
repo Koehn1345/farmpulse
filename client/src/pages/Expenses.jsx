@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
+import { formatDate } from '../lib/format.js';
 import Modal from '../components/Modal.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
@@ -114,7 +115,7 @@ export default function Expenses() {
             <tbody>
               {sorted.map(row => (
                 <tr key={row.id} className="table-row cursor-pointer" onClick={() => setViewRow(row)}>
-                  <td className="px-5 py-3 font-mono text-xs text-slate-400">{row.date}</td>
+                  <td className="px-5 py-3 font-mono text-xs text-slate-400">{formatDate(row.date)}</td>
                   <td className="px-5 py-3 text-slate-200 font-medium">
                     {row.vendor}
                     {row.load_id && (
@@ -182,7 +183,7 @@ export default function Expenses() {
         <Modal title="Expense" onClose={() => setViewRow(null)}>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><div className="label">Date</div><div className="text-slate-100">{viewRow.date}</div></div>
+              <div><div className="label">Date</div><div className="text-slate-100">{formatDate(viewRow.date)}</div></div>
               <div><div className="label">Amount</div><div className="text-red-400 font-semibold">{fmt(viewRow.amount)}</div></div>
               <div><div className="label">Vendor</div><div className="text-slate-100">{viewRow.vendor}</div></div>
               <div><div className="label">Field</div><div className="text-slate-100">{viewRow.field_name || '—'}</div></div>
