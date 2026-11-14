@@ -132,7 +132,7 @@ CREATE TABLE IF NOT EXISTS loads (
   commodity_id UUID REFERENCES commodities(id),
   field_id UUID REFERENCES fields(id),
   shipper TEXT,
-  type TEXT NOT NULL CHECK (type IN ('Forage', 'Grain')),
+  type TEXT NOT NULL CHECK (type IN ('Forage', 'Grain', 'Custom')),
   bale_count INT,
   gross_weight NUMERIC(12,2),
   tare_weight NUMERIC(12,2),
@@ -216,6 +216,25 @@ CREATE TABLE IF NOT EXISTS fuel_entries (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   deleted_at TIMESTAMPTZ
 );
+
+-- Load pick lists: product and delivery location
+CREATE TABLE IF NOT EXISTS products (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  farm_id UUID NOT NULL REFERENCES farms(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
+);
+CREATE TABLE IF NOT EXISTS delivery_locations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  farm_id UUID NOT NULL REFERENCES farms(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  address TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
+);
+ALTER TABLE loads ADD COLUMN IF NOT EXISTS product_id UUID REFERENCES products(id);
+ALTER TABLE loads ADD COLUMN IF NOT EXISTS delivery_location_id UUID REFERENCES delivery_locations(id);
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_fields_farm ON fields(farm_id) WHERE deleted_at IS NULL;

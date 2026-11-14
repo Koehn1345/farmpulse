@@ -9,7 +9,8 @@ import { loadShipperId } from './shippers.js';
 export async function syncLoadExpense(load) {
   // Loads off an outside shipper's field: the trucking charge is billed to
   // that shipper (trucking income), not a farm expense.
-  const amount = (await loadShipperId(load)) ? null : load.gross_pay;
+  // Custom loads: the freight is what this farm earns for hauling, not a cost.
+  const amount = (load.type === 'Custom' || await loadShipperId(load)) ? null : load.gross_pay;
 
   if (amount === null || amount === undefined) {
     await pool.query(

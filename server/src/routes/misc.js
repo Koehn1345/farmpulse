@@ -47,10 +47,12 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
         ) t ORDER BY y DESC`, [fid]),
     ]);
 
-    // Freight on loads hauled off this farm's own fields. Loads off an
-    // outside shipper's field are reported on the Outside Shippers page.
+    // Freight on loads hauled off this farm's own fields, plus Custom hauls
+    // (someone else's product). Loads off an outside shipper's field are
+    // reported on the Outside Shippers page.
     const { rows: truckingRows } = await pool.query(
-      `SELECT COALESCE(SUM(l.gross_pay), 0) AS total
+      `SELECT COALESCE(SUM(l.gross_pay), 0) AS total,
+         COALESCE(SUM(l.gross_pay) FILTER (WHERE l.type = 'Custom'), 0) AS custom
        FROM loads l
        LEFT JOIN commodities co ON co.id = l.commodity_id
        LEFT JOIN fields f ON f.id = COALESCE(l.field_id, co.field_id)
@@ -90,6 +92,7 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
       totalNetTons: parseFloat(loads.net_tons).toFixed(1),
       fieldIncome,
       truckingIncome: parseFloat(truckingRows[0].total),
+      customTruckingIncome: parseFloat(truckingRows[0].custom),
       recentLoads: recentRes.rows,
       tonsByCutting: inv.tonsByCutting,
       tonsByType: inv.tonsByType,

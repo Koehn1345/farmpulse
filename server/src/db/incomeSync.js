@@ -8,7 +8,8 @@ import { loadShipperId } from './shippers.js';
 export async function syncLoadIncome(load) {
   let amount = null;
   // Loads off an outside shipper's field are never farm income.
-  const outside = await loadShipperId(load);
+  // Custom loads (hauling someone else's product) are trucking income only.
+  const outside = load.type === 'Custom' || await loadShipperId(load);
   if (!outside && load.commodity_id && load.net_weight) {
     const { rows } = await pool.query(
       'SELECT price_per_ton FROM commodities WHERE id = $1',

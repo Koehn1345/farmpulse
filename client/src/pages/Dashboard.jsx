@@ -123,7 +123,7 @@ export default function Dashboard() {
         <StatCard
           label="Trucking Income"
           value={fmt(data.truckingIncome || 0)}
-          sub="Freight on your farm's loads"
+          sub={data.customTruckingIncome ? `Includes ${fmt(data.customTruckingIncome)} custom hauling` : "Freight on your farm's loads"}
           icon={Warehouse}
           accent="bg-amber-900/50 text-amber-400"
         />

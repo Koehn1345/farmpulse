@@ -9,6 +9,7 @@ import { formatDate, formatTime } from '../lib/format.js';
 
 const emptyLoad = {
   date: '', loadTime: '', customerId: '', commodityId: '', fieldId: '', shipper: '',
+  productId: '', deliveryLocationId: '',
   type: 'Forage', baleCount: '', grossWeight: '', tareWeight: '', netWeight: '',
   driver: '', truckNumber: '', bolNumber: '',
   bol_url: '', scale_ticket_url: '', misc_url: '',
@@ -47,6 +48,32 @@ function QuickAddCustomer({ onSave, onCancel }) {
   );
 }
 
+// One-box quick add for the simple pick lists (Product, Delivery Location)
+function QuickAddName({ title, placeholder, create, onSave, onCancel }) {
+  const [name, setName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const handleSave = async () => {
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      onSave(await create({ name: name.trim() }));
+    } catch (err) {
+      alert(`Failed to add: ${err.message}`);
+    } finally { setSaving(false); }
+  };
+  return (
+    <div className="mt-2 p-3 bg-slate-800 rounded-lg border border-slate-700 space-y-2">
+      <div className="text-xs text-slate-400 font-medium">{title}</div>
+      <input className="input" placeholder={placeholder} value={name} onChange={e => setName(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') handleSave(); }} autoFocus />
+      <div className="flex gap-2">
+        <button className="btn-primary !py-1 text-xs" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Add'}</button>
+        <button className="btn-secondary !py-1 text-xs" onClick={onCancel}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
 function QuickAddField({ onSave, onCancel }) {
   const [form, setForm] = useState({ field_name: '', acres: '' });
   const [saving, setSaving] = useState(false);
@@ -74,7 +101,6 @@ function QuickAddField({ onSave, onCancel }) {
 function QuickAddCommodity({ type, fields, defaultFieldId, onSave, onCancel }) {
   const [form, setForm] = useState({ type, field_id: defaultFieldId || '', type_of_forage: '', cutting: '1st', stack_number: '', bale_count: '', avg_bale_weight_lbs: '', type_crop: '', seed_details: '', bag_number: '', estimated_total_tons: '' });
   const [saving, setSaving] = useState(false);
-  const displayType = type === 'Forage' ? 'Stack' : type;
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -88,7 +114,7 @@ function QuickAddCommodity({ type, fields, defaultFieldId, onSave, onCancel }) {
   };
   return (
     <div className="mt-2 p-3 bg-slate-800 rounded-lg border border-slate-700 space-y-2">
-      <div className="text-xs text-slate-400 font-medium">New {displayType} Commodity</div>
+      <div className="text-xs text-slate-400 font-medium">New {type === 'Forage' ? 'Stack' : 'Bag'}</div>
       <select className="input" value={form.field_id} onChange={e => setForm(f => ({ ...f, field_id: e.target.value }))}>
         <option value="">Field (optional)</option>
         {fields.map(f => <option key={f.id} value={f.id}>{f.field_name}</option>)}
@@ -129,6 +155,8 @@ export default function Loads() {
   const [customers, setCustomers] = useState([]);
   const [fields, setFields] = useState([]);
   const [commodities, setCommodities] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState(emptyLoad);
@@ -154,6 +182,9 @@ export default function Loads() {
     ]);
     setRows(l); setCustomers(c); setFields(f); setCommodities(co);
     setLoading(false);
+    // Pick lists load separately so the page still works if they fail
+    api.products.list().then(setProducts).catch(() => {});
+    api.deliveryLocations.list().then(setLocations).catch(() => {});
   };
   useEffect(() => { loadData(); }, []);
 
@@ -175,6 +206,8 @@ export default function Loads() {
       fieldId: row.field_id || '',
       shipper: row.shipper || '',
       type: row.type || 'Forage',
+      productId: row.product_id || '',
+      deliveryLocationId: row.delivery_location_id || '',
       baleCount: row.bale_count ?? '',
       grossWeight: row.gross_weight ?? '',
       tareWeight: row.tare_weight ?? '',
@@ -237,9 +270,10 @@ export default function Loads() {
     });
   };
 
-  const typeLabel = (t) => t === 'Forage' ? 'Stacks' : 'Grain';
+  const typeLabel = (t) => t === 'Forage' ? 'Stacks' : t === 'Custom' ? 'Custom' : 'Grain';
+  const hasBales = (t) => t !== 'Grain';
   const selectedField = fields.find(f => f.id === form.fieldId);
-  const cropLabel = (row) => (row.type === 'Forage' ? (row.stack_number || row.type_of_forage) : (row.bag_number ? `Bag ${row.bag_number}${row.type_crop ? ` (${row.type_crop})` : ''}` : row.type_crop)) || '—';
+  const cropLabel = (row) => row.type === 'Custom' ? '—' : (row.type === 'Forage' ? (row.stack_number || row.type_of_forage) : (row.bag_number ? `Bag ${row.bag_number}${row.type_crop ? ` (${row.type_crop})` : ''}` : row.type_crop)) || '—';
 
   const handleDriverChange = (e) => {
     const { name, value } = e.target;
@@ -261,10 +295,12 @@ export default function Loads() {
       date: form.date,
       load_time: form.loadTime || null,
       customer_id: form.customerId || null,
-      commodity_id: form.commodityId || null,
+      commodity_id: form.type === 'Custom' ? null : form.commodityId || null,
       field_id: form.fieldId || null,
       shipper: form.shipper,
       type: form.type,
+      product_id: form.productId || null,
+      delivery_location_id: form.type === 'Custom' ? form.deliveryLocationId || null : null,
       bale_count: form.baleCount ? parseInt(form.baleCount) : null,
       gross_weight: parseFloat(form.grossWeight) || null,
       tare_weight: parseFloat(form.tareWeight) || null,
@@ -354,6 +390,16 @@ export default function Loads() {
     setForm(frm => ({ ...frm, fieldId: f.id }));
     setQuickAdd(null);
   };
+  const onProductAdded = (p) => {
+    setProducts(prev => prev.some(x => x.id === p.id) ? prev : [...prev, p].sort((a, b) => a.name.localeCompare(b.name)));
+    setForm(f => ({ ...f, productId: p.id }));
+    setQuickAdd(null);
+  };
+  const onLocationAdded = (l) => {
+    setLocations(prev => prev.some(x => x.id === l.id) ? prev : [...prev, l].sort((a, b) => a.name.localeCompare(b.name)));
+    setForm(f => ({ ...f, deliveryLocationId: l.id }));
+    setQuickAdd(null);
+  };
   const onCommodityAdded = (c) => {
     setCommodities(prev => [...prev, c]);
     setForm(f => ({ ...f, commodityId: c.id }));
@@ -380,7 +426,7 @@ export default function Loads() {
   // Commodities list is already scoped to non-deleted (active) rows by the
   // API; once a field is picked, narrow further to crops grown on it.
   const filteredCommodities = commodities.filter(c => c.type === form.type && (!form.fieldId || c.field_id === form.fieldId));
-  const baseHeaders = ['', 'Status', 'Date', 'Time', 'Customer', 'Field', 'Commodity', 'Shipper', 'Driver / Truck', 'Bales', 'BOL #', 'Gross', 'Tare', 'Net (lbs)', 'Tons', 'Type'];
+  const baseHeaders = ['', 'Status', 'Date', 'Time', 'Customer', 'Delivery Location', 'Field', 'Stack/Bag', 'Product', 'Shipper', 'Driver / Truck', 'Bales', 'BOL #', 'Gross', 'Tare', 'Net (lbs)', 'Tons', 'Type'];
   const headers = isAdmin ? [...baseHeaders, 'Rate ($/ton)', 'Gross Pay'] : baseHeaders;
 
   // Calendar view: group the same filtered loads by date for a month grid
@@ -433,7 +479,7 @@ export default function Loads() {
       {/* Filter */}
       <div className="flex flex-wrap items-center gap-2 mb-5">
         <Filter size={14} className="text-slate-500" />
-        {['All', 'Forage', 'Grain'].map(t => (
+        {['All', 'Forage', 'Grain', 'Custom'].map(t => (
           <button
             key={t}
             onClick={() => setFilterType(t)}
@@ -542,7 +588,7 @@ export default function Loads() {
                             {row.load_time && <div className="text-soil-300 font-mono font-semibold">{formatTime(row.load_time)}</div>}
                             <div className="text-slate-200 truncate font-medium">{row.customer_name || '—'}</div>
                             <div className="text-slate-400 truncate">{row.field_name || '—'}</div>
-                            <div className="text-slate-500 truncate">{cropLabel(row)}</div>
+                            <div className="text-slate-500 truncate">{row.type === 'Custom' ? `Custom${row.product_name ? ` · ${row.product_name}` : ''}` : cropLabel(row)}</div>
                           </div>
                         ))}
                       </div>
@@ -601,15 +647,17 @@ export default function Loads() {
                           <td className="px-4 py-3 font-mono text-xs text-slate-400">{formatDate(row.date)}</td>
                           <td className="px-4 py-3 font-mono text-xs text-soil-300">{formatTime(row.load_time) || '—'}</td>
                           <td className="px-4 py-3 text-slate-200">{row.customer_name || '—'}</td>
+                          <td className="px-4 py-3 text-slate-300 text-xs">{row.delivery_location_name || '—'}</td>
                           <td className="px-4 py-3 text-slate-400">{row.field_name || '—'}</td>
                           <td className="px-4 py-3 text-slate-300 text-xs">{cropLabel(row)}</td>
+                          <td className="px-4 py-3 text-slate-300 text-xs">{row.product_name || '—'}</td>
                           <td className="px-4 py-3 text-slate-400 text-xs">{row.shipper || '—'}</td>
                           <td className="px-4 py-3 text-xs text-slate-400">
                             {row.driver && <span>{row.driver}</span>}
                             {row.truck_number && <span className="ml-1 font-mono text-slate-500">#{row.truck_number}</span>}
                             {!row.driver && !row.truck_number && '—'}
                           </td>
-                          <td className="px-4 py-3 font-mono text-xs text-slate-400">{row.type === 'Forage' ? (row.bale_count ?? '—') : '—'}</td>
+                          <td className="px-4 py-3 font-mono text-xs text-slate-400">{hasBales(row.type) ? (row.bale_count ?? '—') : '—'}</td>
                           <td className="px-4 py-3 font-mono text-xs text-slate-300">{row.bol_number || '—'}</td>
                           <td className="px-4 py-3 font-mono text-slate-400 text-xs">{row.gross_weight?.toLocaleString() || '—'}</td>
                           <td className="px-4 py-3 font-mono text-slate-400 text-xs">{row.tare_weight?.toLocaleString() || '—'}</td>
@@ -674,6 +722,7 @@ export default function Loads() {
                 <select className="input" name="type" value={form.type} onChange={handleChange}>
                   <option value="Forage">Stacks</option>
                   <option value="Grain">Grain</option>
+                  <option value="Custom">Custom</option>
                 </select>
               </div>
             </div>
@@ -696,6 +745,28 @@ export default function Loads() {
                 <QuickAddCustomer onSave={onCustomerAdded} onCancel={() => setQuickAdd(null)} />
               )}
             </div>
+
+            {/* Delivery Location - Custom loads only */}
+            {form.type === 'Custom' && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="label !mb-0">Delivery Location</label>
+                  {quickAdd !== 'location' && canManageSupportingRecords && (
+                    <button className="text-xs text-soil-400 hover:text-soil-300" onClick={() => setQuickAdd('location')}>
+                      + New Location
+                    </button>
+                  )}
+                </div>
+                <select className="input" name="deliveryLocationId" value={form.deliveryLocationId} onChange={handleChange}>
+                  <option value="">Select…</option>
+                  {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                </select>
+                {quickAdd === 'location' && (
+                  <QuickAddName title="New Delivery Location" placeholder="Location name" create={api.deliveryLocations.create}
+                    onSave={onLocationAdded} onCancel={() => setQuickAdd(null)} />
+                )}
+              </div>
+            )}
 
             {/* Field with quick-add */}
             <div>
@@ -724,13 +795,13 @@ export default function Loads() {
               )}
             </div>
 
-            {/* Commodity with quick-add */}
-            <div>
+            {/* Stack/Bag with quick-add - not on Custom loads, which haul someone else's product */}
+            {form.type !== 'Custom' && <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="label !mb-0">Commodity</label>
+                <label className="label !mb-0">{form.type === 'Forage' ? 'Stack' : 'Bag'}</label>
                 {quickAdd !== 'commodity' && canManageSupportingRecords && (
                   <button className="text-xs text-soil-400 hover:text-soil-300" onClick={() => setQuickAdd('commodity')}>
-                    + New Commodity
+                    + New {form.type === 'Forage' ? 'Stack' : 'Bag'}
                   </button>
                 )}
               </div>
@@ -745,7 +816,7 @@ export default function Loads() {
                 ))}
               </select>
               {form.fieldId && filteredCommodities.length === 0 && (
-                <div className="text-xs text-slate-500 mt-1">No active commodities on this field yet.</div>
+                <div className="text-xs text-slate-500 mt-1">No open {form.type === 'Forage' ? 'stacks' : 'bags'} on this field yet.</div>
               )}
               {quickAdd === 'commodity' && (
                 <QuickAddCommodity
@@ -755,6 +826,26 @@ export default function Loads() {
                   onSave={onCommodityAdded}
                   onCancel={() => setQuickAdd(null)}
                 />
+              )}
+            </div>}
+
+            {/* Product pick list */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="label !mb-0">Product</label>
+                {quickAdd !== 'product' && canManageSupportingRecords && (
+                  <button className="text-xs text-soil-400 hover:text-soil-300" onClick={() => setQuickAdd('product')}>
+                    + New Product
+                  </button>
+                )}
+              </div>
+              <select className="input" name="productId" value={form.productId} onChange={handleChange}>
+                <option value="">Select…</option>
+                {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+              {quickAdd === 'product' && (
+                <QuickAddName title="New Product" placeholder="Product name" create={api.products.create}
+                  onSave={onProductAdded} onCancel={() => setQuickAdd(null)} />
               )}
             </div>
 
@@ -779,8 +870,10 @@ export default function Loads() {
                   <label className="label">Gross Pay</label>
                   <input className="input font-mono" type="number" step="0.01" name="grossPay" value={form.grossPay} onChange={handleChange} placeholder="900.00" />
                   <div className="text-xs text-slate-500 mt-1">Auto-calculated from Net Weight × Rate — edit to override.</div>
-                  {selectedField?.shipper_id && (
+                  {selectedField?.shipper_id ? (
                     <div className="text-xs text-amber-400/80 mt-1">Billed to {selectedField.shipper_name || 'the shipper'} as Trucking Income.</div>
+                  ) : form.type === 'Custom' && (
+                    <div className="text-xs text-amber-400/80 mt-1">Custom haul: counts as Trucking Income, not a farm expense.</div>
                   )}
                 </div>
               </div>
@@ -788,7 +881,7 @@ export default function Loads() {
 
             {/* Additional fields only shown when editing */}
             {modal !== 'add' && <>
-              {form.type === 'Forage' && (
+              {hasBales(form.type) && (
                 <div>
                   <label className="label">Bale Count</label>
                   <input className="input" type="number" name="baleCount" value={form.baleCount} onChange={handleChange} placeholder="24" />
@@ -870,7 +963,7 @@ export default function Loads() {
               Update the delivery details that the driver can complete.
             </div>
 
-            {driverUpdate.type === 'Forage' && (
+            {hasBales(driverUpdate.type) && (
               <div>
                 <label className="label">Bale Count</label>
                 <input className="input" type="number" name="baleCount" value={driverForm.baleCount} onChange={handleDriverChange} placeholder="24" />
@@ -958,13 +1051,15 @@ export default function Loads() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div><div className="label">Scheduled Time</div><div className="text-slate-100">{formatTime(viewRow.load_time) || '—'}</div></div>
               <div><div className="label">Customer</div><div className="text-slate-100">{viewRow.customer_name || '—'}</div></div>
+              {viewRow.type === 'Custom' && <div><div className="label">Delivery Location</div><div className="text-slate-100">{viewRow.delivery_location_name || '—'}</div></div>}
               <div><div className="label">Field</div><div className="text-slate-100">{viewRow.field_name || '—'}</div></div>
-              <div><div className="label">Commodity</div><div className="text-slate-100">{cropLabel(viewRow)}</div></div>
+              <div><div className="label">Stack/Bag</div><div className="text-slate-100">{cropLabel(viewRow)}</div></div>
+              <div><div className="label">Product</div><div className="text-slate-100">{viewRow.product_name || '—'}</div></div>
               <div><div className="label">Shipper</div><div className="text-slate-100">{viewRow.shipper || '—'}</div></div>
               <div><div className="label">Driver</div><div className="text-slate-100">{viewRow.driver || '—'}</div></div>
               <div><div className="label">Truck #</div><div className="text-slate-100">{viewRow.truck_number || '—'}</div></div>
               <div><div className="label">Type</div><div className="text-slate-100">{typeLabel(viewRow.type)}</div></div>
-              <div><div className="label">Bales</div><div className="font-mono text-slate-100">{viewRow.type === 'Forage' ? (viewRow.bale_count ?? '—') : '—'}</div></div>
+              <div><div className="label">Bales</div><div className="font-mono text-slate-100">{hasBales(viewRow.type) ? (viewRow.bale_count ?? '—') : '—'}</div></div>
               <div><div className="label">BOL #</div><div className="font-mono text-slate-100">{viewRow.bol_number || '—'}</div></div>
             </div>
 
