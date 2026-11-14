@@ -103,6 +103,12 @@ export const api = {
     update: (id, b) => req('PUT', `/delivery-locations/${id}`, b),
     delete: (id) => req('DELETE', `/delivery-locations/${id}`),
   },
+  pickupLocations: {
+    list: () => req('GET', '/pickup-locations'),
+    create: (b) => req('POST', '/pickup-locations', b),
+    update: (id, b) => req('PUT', `/pickup-locations/${id}`, b),
+    delete: (id) => req('DELETE', `/pickup-locations/${id}`),
+  },
   shippers: {
     list: (year) => req('GET', year ? `/shippers?year=${year}` : '/shippers'),
     inventory: (id, year) => req('GET', year ? `/shippers/${id}/inventory?year=${year}` : `/shippers/${id}/inventory`),

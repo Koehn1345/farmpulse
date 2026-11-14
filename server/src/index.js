@@ -15,7 +15,7 @@ import incomeRoutes from './routes/income.js';
 import expenseRoutes from './routes/expenses.js';
 import miscRoutes from './routes/misc.js';
 import shipperRoutes from './routes/shippers.js';
-import { productRoutes, deliveryLocationRoutes } from './routes/pickLists.js';
+import { productRoutes, deliveryLocationRoutes, pickupLocationRoutes } from './routes/pickLists.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -43,6 +43,7 @@ api.use('/expenses', expenseRoutes);
 api.use('/shippers', shipperRoutes);
 api.use('/products', productRoutes);
 api.use('/delivery-locations', deliveryLocationRoutes);
+api.use('/pickup-locations', pickupLocationRoutes);
 api.use('/', miscRoutes);
 
 app.use('/api', api);

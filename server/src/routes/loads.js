@@ -19,6 +19,10 @@ function forRole(row, role) {
 // Custom loads haul someone else's product: they never draw down this
 // farm's stacks/bags, so they can't be tied to one.
 const commodityFor = (b) => (b.type === 'Custom' ? null : b.commodity_id || null);
+// Custom loads pick up from a Pickup Location, never one of the farm's
+// fields; farm loads never carry a pickup location.
+const fieldFor = (b) => (b.type === 'Custom' ? null : b.field_id || null);
+const pickupFor = (b) => (b.type === 'Custom' ? b.pickup_location_id || null : null);
 
 // List loads
 router.get('/', async (req, res) => {
@@ -39,6 +43,7 @@ router.get('/', async (req, res) => {
         co.stack_number, co.type_of_forage, co.type_crop, co.bag_number,
         p.name as product_name,
         dl.name as delivery_location_name,
+        pl.name as pickup_location_name,
         fm.name as farm_name
        FROM loads l
        LEFT JOIN customers c ON c.id = l.customer_id
@@ -46,6 +51,7 @@ router.get('/', async (req, res) => {
        LEFT JOIN commodities co ON co.id = l.commodity_id
        LEFT JOIN products p ON p.id = l.product_id
        LEFT JOIN delivery_locations dl ON dl.id = l.delivery_location_id
+       LEFT JOIN pickup_locations pl ON pl.id = l.pickup_location_id
        LEFT JOIN farms fm ON fm.id = l.farm_id
        WHERE l.farm_id IN (${placeholders}) AND l.deleted_at IS NULL
        ORDER BY l.date DESC, l.load_time ASC NULLS LAST, l.created_at DESC`,
@@ -70,17 +76,17 @@ router.post('/', async (req, res) => {
         shipper, type, bale_count, gross_weight, tare_weight, net_weight,
         driver, truck_number, logged_by_clerk_id,
         bol_number, bol_url, scale_ticket_url, misc_url,
-        freight_rate, gross_pay, load_time, product_id, delivery_location_id
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23) RETURNING *`,
+        freight_rate, gross_pay, load_time, product_id, delivery_location_id, pickup_location_id
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24) RETURNING *`,
       [
-        req.farmId, b.date, b.customer_id || null, commodityFor(b), b.field_id || null,
+        req.farmId, b.date, b.customer_id || null, commodityFor(b), fieldFor(b),
         b.shipper, b.type, b.bale_count || null,
         b.gross_weight || null, b.tare_weight || null, b.net_weight || null,
         b.driver, b.truck_number, req.clerkUserId,
         b.bol_number || null, b.bol_url || null, b.scale_ticket_url || null, b.misc_url || null,
         setRate ? (b.freight_rate === '' ? null : b.freight_rate ?? null) : null,
         setRate ? (b.gross_pay === '' ? null : b.gross_pay ?? null) : null,
-        b.load_time || null, b.product_id || null, b.delivery_location_id || null,
+        b.load_time || null, b.product_id || null, b.delivery_location_id || null, pickupFor(b),
       ]
     );
 
@@ -112,7 +118,7 @@ router.put('/:id', async (req, res) => {
       'bol_number=$13', 'bol_url=$14', 'scale_ticket_url=$15', 'misc_url=$16',
     ];
     const params = [
-      b.date, b.customer_id || null, commodityFor(b), b.field_id || null,
+      b.date, b.customer_id || null, commodityFor(b), fieldFor(b),
       b.shipper, b.type, b.bale_count || null, b.gross_weight || null,
       b.tare_weight || null, b.net_weight || null, b.driver, b.truck_number,
       b.bol_number || null, b.bol_url || null, b.scale_ticket_url || null, b.misc_url || null,
@@ -129,6 +135,10 @@ router.put('/:id', async (req, res) => {
         params.push(b[col] || null);
         setParts.push(`${col}=$${params.length}`);
       }
+    }
+    if ('pickup_location_id' in b || b.type !== 'Custom') {
+      params.push(pickupFor(b));
+      setParts.push(`pickup_location_id=$${params.length}`);
     }
     // Only touch freight_rate/gross_pay when the request actually carries
     // them (the full edit form always does; the driver-update form never

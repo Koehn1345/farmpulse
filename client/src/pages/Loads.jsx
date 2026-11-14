@@ -9,7 +9,7 @@ import { formatDate, formatTime } from '../lib/format.js';
 
 const emptyLoad = {
   date: '', loadTime: '', customerId: '', commodityId: '', fieldId: '', shipper: '',
-  productId: '', deliveryLocationId: '',
+  productId: '', deliveryLocationId: '', pickupLocationId: '',
   type: 'Forage', baleCount: '', grossWeight: '', tareWeight: '', netWeight: '',
   driver: '', truckNumber: '', bolNumber: '',
   bol_url: '', scale_ticket_url: '', misc_url: '',
@@ -157,6 +157,7 @@ export default function Loads() {
   const [commodities, setCommodities] = useState([]);
   const [products, setProducts] = useState([]);
   const [locations, setLocations] = useState([]);
+  const [pickups, setPickups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState(emptyLoad);
@@ -185,6 +186,7 @@ export default function Loads() {
     // Pick lists load separately so the page still works if they fail
     api.products.list().then(setProducts).catch(() => {});
     api.deliveryLocations.list().then(setLocations).catch(() => {});
+    api.pickupLocations.list().then(setPickups).catch(() => {});
   };
   useEffect(() => { loadData(); }, []);
 
@@ -208,6 +210,7 @@ export default function Loads() {
       type: row.type || 'Forage',
       productId: row.product_id || '',
       deliveryLocationId: row.delivery_location_id || '',
+      pickupLocationId: row.pickup_location_id || '',
       baleCount: row.bale_count ?? '',
       grossWeight: row.gross_weight ?? '',
       tareWeight: row.tare_weight ?? '',
@@ -272,6 +275,8 @@ export default function Loads() {
 
   const typeLabel = (t) => t === 'Forage' ? 'Stacks' : t === 'Custom' ? 'Custom' : 'Grain';
   const hasBales = (t) => t !== 'Grain';
+  // Field for farm loads, Pickup Location for Custom loads
+  const placeLabel = (row) => (row.type === 'Custom' ? row.pickup_location_name : row.field_name) || '—';
   const selectedField = fields.find(f => f.id === form.fieldId);
   const cropLabel = (row) => row.type === 'Custom' ? '—' : (row.type === 'Forage' ? (row.stack_number || row.type_of_forage) : (row.bag_number ? `Bag ${row.bag_number}${row.type_crop ? ` (${row.type_crop})` : ''}` : row.type_crop)) || '—';
 
@@ -296,7 +301,8 @@ export default function Loads() {
       load_time: form.loadTime || null,
       customer_id: form.customerId || null,
       commodity_id: form.type === 'Custom' ? null : form.commodityId || null,
-      field_id: form.fieldId || null,
+      field_id: form.type === 'Custom' ? null : form.fieldId || null,
+      pickup_location_id: form.type === 'Custom' ? form.pickupLocationId || null : null,
       shipper: form.shipper,
       type: form.type,
       product_id: form.productId || null,
@@ -395,6 +401,11 @@ export default function Loads() {
     setForm(f => ({ ...f, productId: p.id }));
     setQuickAdd(null);
   };
+  const onPickupAdded = (l) => {
+    setPickups(prev => prev.some(x => x.id === l.id) ? prev : [...prev, l].sort((a, b) => a.name.localeCompare(b.name)));
+    setForm(f => ({ ...f, pickupLocationId: l.id }));
+    setQuickAdd(null);
+  };
   const onLocationAdded = (l) => {
     setLocations(prev => prev.some(x => x.id === l.id) ? prev : [...prev, l].sort((a, b) => a.name.localeCompare(b.name)));
     setForm(f => ({ ...f, deliveryLocationId: l.id }));
@@ -426,7 +437,7 @@ export default function Loads() {
   // Commodities list is already scoped to non-deleted (active) rows by the
   // API; once a field is picked, narrow further to crops grown on it.
   const filteredCommodities = commodities.filter(c => c.type === form.type && (!form.fieldId || c.field_id === form.fieldId));
-  const baseHeaders = ['', 'Status', 'Date', 'Time', 'Customer', 'Product', 'Field', 'Stack/Bag', 'Delivery Location', 'Shipper', 'Driver / Truck', 'Bales', 'BOL #', 'Gross', 'Tare', 'Net (lbs)', 'Tons', 'Type'];
+  const baseHeaders = ['', 'Status', 'Date', 'Time', 'Customer', 'Product', 'Field / Pickup', 'Stack/Bag', 'Delivery Location', 'Shipper', 'Driver / Truck', 'Bales', 'BOL #', 'Gross', 'Tare', 'Net (lbs)', 'Tons', 'Type'];
   const headers = isAdmin ? [...baseHeaders, 'Rate ($/ton)', 'Gross Pay'] : baseHeaders;
 
   // Calendar view: group the same filtered loads by date for a month grid
@@ -587,7 +598,7 @@ export default function Loads() {
                           >
                             {row.load_time && <div className="text-soil-300 font-mono font-semibold">{formatTime(row.load_time)}</div>}
                             <div className="text-slate-200 truncate font-medium">{row.customer_name || '—'}</div>
-                            <div className="text-slate-400 truncate">{row.field_name || '—'}</div>
+                            <div className="text-slate-400 truncate">{placeLabel(row)}</div>
                             <div className="text-slate-500 truncate">{row.type === 'Custom' ? `Custom${row.product_name ? ` · ${row.product_name}` : ''}` : cropLabel(row)}</div>
                           </div>
                         ))}
@@ -648,7 +659,7 @@ export default function Loads() {
                           <td className="px-4 py-3 font-mono text-xs text-soil-300">{formatTime(row.load_time) || '—'}</td>
                           <td className="px-4 py-3 text-slate-200">{row.customer_name || '—'}</td>
                           <td className="px-4 py-3 text-slate-300 text-xs">{row.product_name || '—'}</td>
-                          <td className="px-4 py-3 text-slate-400">{row.field_name || '—'}</td>
+                          <td className="px-4 py-3 text-slate-400">{placeLabel(row)}</td>
                           <td className="px-4 py-3 text-slate-300 text-xs">{cropLabel(row)}</td>
                           <td className="px-4 py-3 text-slate-300 text-xs">{row.delivery_location_name || '—'}</td>
                           <td className="px-4 py-3 text-slate-400 text-xs">{row.shipper || '—'}</td>
@@ -768,8 +779,31 @@ export default function Loads() {
               </div>
             )}
 
-            {/* Field with quick-add */}
-            <div>
+            {/* Pickup Location - Custom loads only. Kept apart from the farm's
+                fields so someone else's ground never lands in Fields. */}
+            {form.type === 'Custom' && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="label !mb-0">Pickup Location</label>
+                  {quickAdd !== 'pickup' && canManageSupportingRecords && (
+                    <button className="text-xs text-soil-400 hover:text-soil-300" onClick={() => setQuickAdd('pickup')}>
+                      + New Pickup Location
+                    </button>
+                  )}
+                </div>
+                <select className="input" name="pickupLocationId" value={form.pickupLocationId} onChange={handleChange}>
+                  <option value="">Select…</option>
+                  {pickups.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                </select>
+                {quickAdd === 'pickup' && (
+                  <QuickAddName title="New Pickup Location" placeholder="Pickup location name" create={api.pickupLocations.create}
+                    onSave={onPickupAdded} onCancel={() => setQuickAdd(null)} />
+                )}
+              </div>
+            )}
+
+            {/* Field with quick-add - farm loads only */}
+            {form.type !== 'Custom' && <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="label !mb-0">Field</label>
                 {quickAdd !== 'field' && isAdmin && (
@@ -793,7 +827,7 @@ export default function Loads() {
               {quickAdd === 'field' && (
                 <QuickAddField onSave={onFieldAdded} onCancel={() => setQuickAdd(null)} />
               )}
-            </div>
+            </div>}
 
             {/* Stack/Bag with quick-add - not on Custom loads, which haul someone else's product */}
             {form.type !== 'Custom' && <div>
@@ -1052,7 +1086,7 @@ export default function Loads() {
               <div><div className="label">Scheduled Time</div><div className="text-slate-100">{formatTime(viewRow.load_time) || '—'}</div></div>
               <div><div className="label">Customer</div><div className="text-slate-100">{viewRow.customer_name || '—'}</div></div>
               {viewRow.type === 'Custom' && <div><div className="label">Delivery Location</div><div className="text-slate-100">{viewRow.delivery_location_name || '—'}</div></div>}
-              <div><div className="label">Field</div><div className="text-slate-100">{viewRow.field_name || '—'}</div></div>
+              <div><div className="label">{viewRow.type === 'Custom' ? 'Pickup Location' : 'Field'}</div><div className="text-slate-100">{placeLabel(viewRow)}</div></div>
               <div><div className="label">Stack/Bag</div><div className="text-slate-100">{cropLabel(viewRow)}</div></div>
               <div><div className="label">Product</div><div className="text-slate-100">{viewRow.product_name || '—'}</div></div>
               <div><div className="label">Shipper</div><div className="text-slate-100">{viewRow.shipper || '—'}</div></div>

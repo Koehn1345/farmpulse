@@ -81,3 +81,4 @@ function pickListRouter(table, extraCols = []) {
 
 export const productRoutes = pickListRouter('products');
 export const deliveryLocationRoutes = pickListRouter('delivery_locations', ['address']);
+export const pickupLocationRoutes = pickListRouter('pickup_locations', ['address']);

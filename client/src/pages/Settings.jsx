@@ -58,6 +58,13 @@ export default function Settings() {
           service={api.products}
         />
         <PickListEditor
+          title="Pickup Locations"
+          description="Where Custom loads are picked up. Kept separate from your fields."
+          placeholder="New pickup location name"
+          service={api.pickupLocations}
+          withAddress
+        />
+        <PickListEditor
           title="Delivery Locations"
           description="The Delivery Location pick list on Custom loads."
           placeholder="New location name"

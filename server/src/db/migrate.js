@@ -235,6 +235,15 @@ CREATE TABLE IF NOT EXISTS delivery_locations (
 );
 ALTER TABLE loads ADD COLUMN IF NOT EXISTS product_id UUID REFERENCES products(id);
 ALTER TABLE loads ADD COLUMN IF NOT EXISTS delivery_location_id UUID REFERENCES delivery_locations(id);
+CREATE TABLE IF NOT EXISTS pickup_locations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  farm_id UUID NOT NULL REFERENCES farms(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  address TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
+);
+ALTER TABLE loads ADD COLUMN IF NOT EXISTS pickup_location_id UUID REFERENCES pickup_locations(id);
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_fields_farm ON fields(farm_id) WHERE deleted_at IS NULL;
