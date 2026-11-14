@@ -426,7 +426,7 @@ export default function Loads() {
   // Commodities list is already scoped to non-deleted (active) rows by the
   // API; once a field is picked, narrow further to crops grown on it.
   const filteredCommodities = commodities.filter(c => c.type === form.type && (!form.fieldId || c.field_id === form.fieldId));
-  const baseHeaders = ['', 'Status', 'Date', 'Time', 'Customer', 'Delivery Location', 'Field', 'Stack/Bag', 'Product', 'Shipper', 'Driver / Truck', 'Bales', 'BOL #', 'Gross', 'Tare', 'Net (lbs)', 'Tons', 'Type'];
+  const baseHeaders = ['', 'Status', 'Date', 'Time', 'Customer', 'Product', 'Field', 'Stack/Bag', 'Delivery Location', 'Shipper', 'Driver / Truck', 'Bales', 'BOL #', 'Gross', 'Tare', 'Net (lbs)', 'Tons', 'Type'];
   const headers = isAdmin ? [...baseHeaders, 'Rate ($/ton)', 'Gross Pay'] : baseHeaders;
 
   // Calendar view: group the same filtered loads by date for a month grid
@@ -647,10 +647,10 @@ export default function Loads() {
                           <td className="px-4 py-3 font-mono text-xs text-slate-400">{formatDate(row.date)}</td>
                           <td className="px-4 py-3 font-mono text-xs text-soil-300">{formatTime(row.load_time) || '—'}</td>
                           <td className="px-4 py-3 text-slate-200">{row.customer_name || '—'}</td>
-                          <td className="px-4 py-3 text-slate-300 text-xs">{row.delivery_location_name || '—'}</td>
+                          <td className="px-4 py-3 text-slate-300 text-xs">{row.product_name || '—'}</td>
                           <td className="px-4 py-3 text-slate-400">{row.field_name || '—'}</td>
                           <td className="px-4 py-3 text-slate-300 text-xs">{cropLabel(row)}</td>
-                          <td className="px-4 py-3 text-slate-300 text-xs">{row.product_name || '—'}</td>
+                          <td className="px-4 py-3 text-slate-300 text-xs">{row.delivery_location_name || '—'}</td>
                           <td className="px-4 py-3 text-slate-400 text-xs">{row.shipper || '—'}</td>
                           <td className="px-4 py-3 text-xs text-slate-400">
                             {row.driver && <span>{row.driver}</span>}
