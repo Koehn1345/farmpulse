@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useFarm } from '../context/FarmContext.jsx';
 import PageHeader from '../components/PageHeader.jsx';
+import PickListEditor from '../components/PickListEditor.jsx';
+import { api } from '../lib/api.js';
 
 export default function Settings() {
   const { farm, updateFarm } = useFarm();
@@ -46,6 +48,22 @@ export default function Settings() {
         </div>
         {saved && <p className="text-xs text-emerald-400 mt-2">Farm name updated.</p>}
         <p className="text-xs text-slate-500 mt-2">This is used as your farm's name throughout FarmPulse, including as the default shipper on loads.</p>
+      </div>
+
+      <div className="mt-6 space-y-6">
+        <PickListEditor
+          title="Products"
+          description="The Product pick list on loads."
+          placeholder="New product (e.g. Alfalfa, Straw)"
+          service={api.products}
+        />
+        <PickListEditor
+          title="Delivery Locations"
+          description="The Delivery Location pick list on Custom loads."
+          placeholder="New location name"
+          service={api.deliveryLocations}
+          withAddress
+        />
       </div>
     </div>
   );
